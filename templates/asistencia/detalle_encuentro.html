@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}Encuentro {{ encuentro }}{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-clipboard-list"></i> Detalle Encuentro {{ encuentro }}</h2><a href="{% url 'asistencia:ver_asistencia' asignacion.pk %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+<div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>#</th><th>Estudiante</th><th>Estado</th><th>Fecha</th><th>Observaciones</th></tr></thead><tbody>
+{% for r in registros %}<tr><td>{{ forloop.counter }}</td><td>{{ r.estudiante.nombre_apellido }}</td>
+<td>{% if r.estado == 'presente' %}<span class="badge bg-success">Presente</span>{% elif r.estado == 'ausente' %}<span class="badge bg-danger">Ausente</span>{% elif r.estado == 'excusa' %}<span class="badge bg-warning text-dark">Excusa</span>{% else %}<span class="badge bg-info">Retardo</span>{% endif %}</td>
+<td>{{ r.fecha|date:"d/m/Y" }}</td><td>{{ r.observaciones|default:"-" }}</td></tr>{% endfor %}</tbody></table></div></div></div>{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}{% block title %}Resumen de Asistencia{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-clipboard-check"></i> Resumen de Asistencia</h2><div><a href="{% url 'asistencia:registrar' asignacion.pk %}" class="btn btn-primary me-2"><i class="fas fa-plus me-1"></i> Nuevo Encuentro</a><a href="{% url 'asistencia:seleccionar_materia' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div></div>
+<div class="card mb-3"><div class="card-body"><div class="row"><div class="col-md-3"><strong>Materia:</strong> {{ asignacion.materia.nombre }}</div><div class="col-md-3"><strong>Profesor:</strong> {{ asignacion.profesor.nombres }}</div><div class="col-md-3"><strong>Programa:</strong> {{ asignacion.programa.nombre }}</div><div class="col-md-3"><strong>Encuentros:</strong> {{ total_encuentros }} de 8 (7 + Nivelación)</div></div></div></div>
+
+<div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0" id="tabla-asistencia">
+<thead><tr><th>#</th><th>Estudiante</th><th>Presentes</th><th>Ausencias</th><th>Excusas</th><th>Nivelación</th><th>% Asistencia</th><th>Certificación</th></tr></thead>
+<tbody>{% for r in resumen %}<tr>
+<td>{{ forloop.counter }}</td><td><strong>{{ r.estudiante.nombre_apellido }}</strong></td>
+<td class="text-center"><span class="badge bg-success">{{ r.presentes }}</span></td>
+<td class="text-center"><span class="badge bg-danger">{{ r.ausentes }}</span></td>
+<td class="text-center"><span class="badge bg-warning text-dark">{{ r.excusas }}</span></td>
+<td class="text-center">
+    {% if r.asistio_nivelacion %}
+        {% if r.aplica_nivelacion %}
+            <span class="badge bg-success"><i class="fas fa-star me-1"></i>Aplicada</span>
+        {% else %}
+            <span class="badge bg-secondary">Asistió (no requerida)</span>
+        {% endif %}
+    {% else %}
+        {% if r.porcentaje >= 100 %}
+            <span class="text-muted">No requerida</span>
+        {% else %}
+            <span class="badge bg-danger">No asistió</span>
+        {% endif %}
+    {% endif %}
+</td>
+<td class="text-center"><span class="fw-bold {% if r.porcentaje >= 100 %}text-success{% elif r.porcentaje >= 80 %}text-primary{% elif r.porcentaje >= 60 %}text-warning{% else %}text-danger{% endif %}">{{ r.porcentaje }}%{% if r.aplica_nivelacion %} <i class="fas fa-star text-warning" title="Nivelación"></i>{% endif %}</span></td>
+<td class="text-center">
+    {% if r.certificacion == 'Certificable y Homologable' %}
+        <span class="badge bg-success"><i class="fas fa-award me-1"></i>{{ r.certificacion }}</span>
+    {% elif r.certificacion == 'Certificable' %}
+        <span class="badge bg-info"><i class="fas fa-certificate me-1"></i>{{ r.certificacion }}</span>
+    {% else %}
+        <span class="text-muted">-</span>
+    {% endif %}
+</td>
+</tr>{% endfor %}</tbody></table></div></div></div>
+
+<!-- Leyenda -->
+<div class="alert alert-light border mt-3">
+    <div class="row">
+        <div class="col-md-4">
+            <h6 class="fw-bold"><i class="fas fa-info-circle text-primary me-1"></i> Nivelación</h6>
+            <p class="mb-1 small">Faltó a 1 encuentro + asiste a nivelación = <strong>100%</strong></p>
+            <p class="mb-0 small">Faltó a 2 encuentros + asiste a nivelación = <strong>80%</strong></p>
+        </div>
+        <div class="col-md-4">
+            <h6 class="fw-bold"><i class="fas fa-award text-success me-1"></i> Certificable y Homologable</h6>
+            <p class="mb-0 small">100% asistencia + Promedio ≥ 4.0</p>
+        </div>
+        <div class="col-md-4">
+            <h6 class="fw-bold"><i class="fas fa-certificate text-info me-1"></i> Certificable</h6>
+            <p class="mb-0 small">≥ 80% asistencia + Promedio ≥ 4.0</p>
+        </div>
+    </div>
+</div>
+
+{% if encuentros %}
+<div class="card mt-3"><div class="card-header"><i class="fas fa-list me-2"></i>Encuentros Registrados</div><div class="card-body">
+<div class="row g-2">{% for e in encuentros %}<div class="col-auto"><a href="{% url 'asistencia:detalle_encuentro' asignacion.pk e.encuentro %}" class="btn btn-{% if e.encuentro == ENCUENTRO_NIVELACION %}warning{% else %}outline-primary{% endif %} btn-sm">{% if e.encuentro == ENCUENTRO_NIVELACION %}<i class="fas fa-star me-1"></i>Nivelación{% else %}Encuentro {{ e.encuentro }}{% endif %} — {{ e.fecha|date:"d/m/Y" }}</a></div>{% endfor %}</div>
+</div></div>{% endif %}
+{% endblock %}
+{% block extra_js %}<script>$(document).ready(function(){$('#tabla-asistencia').DataTable({language:{url:'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json'},pageLength:25,order:[[1,'asc']]});});</script>{% endblock %}

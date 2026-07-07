@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Materias{% endblock %}
+{% block content %}
+<div class="page-header"><h2><i class="fas fa-book"></i> Materias</h2><a href="{% url 'materias:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nueva Materia</a></div>
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+<table class="table table-hover mb-0" id="tabla-materias">
+<thead><tr><th>Código</th><th>Materia</th><th>Programa</th><th>Créditos</th><th>Periodo</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>{% for mat in materias %}<tr>
+<td><strong>{{ mat.codigo }}</strong></td><td>{{ mat.nombre }}</td><td>{{ mat.programa.nombre }}</td><td class="text-center">{{ mat.creditos }}</td><td>{{ mat.periodo }}</td>
+<td>{% if mat.activo %}<span class="badge-activo">Activo</span>{% else %}<span class="badge-inactivo">Inactivo</span>{% endif %}</td>
+<td><a href="{% url 'materias:editar' mat.pk %}" class="btn btn-sm btn-outline-primary btn-icon"><i class="fas fa-edit"></i></a> <a href="{% url 'materias:eliminar' mat.pk %}" class="btn btn-sm btn-outline-danger btn-icon"><i class="fas fa-trash"></i></a></td>
+</tr>{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No hay materias.</td></tr>{% endfor %}</tbody></table></div></div></div>
+{% endblock %}
+{% block extra_js %}<script>$(document).ready(function(){$('#tabla-materias').DataTable({language:{url:'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json'},pageLength:15});});</script>{% endblock %}

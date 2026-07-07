@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Filter Badge (visible when a program filter is active) -->
+{% if not es_profesor %}
+<div id="filterBadge" class="alert alert-info d-none align-items-center mb-3" role="alert">
+    <i class="fas fa-filter me-2"></i>
+    <span>Filtrando por programa: <strong id="filterProgramName"></strong></span>
+    <button type="button" class="btn btn-sm btn-outline-light ms-auto" id="btnClearFilter">
+        <i class="fas fa-times me-1"></i> Quitar filtro
+    </button>
+</div>
+{% endif %}
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card kpi-card kpi-primary" style="cursor:pointer;" data-kpi="estudiantes">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="kpi-icon"><i class="fas fa-user-graduate"></i></div>
+                <div>
+                    <div class="kpi-value" id="kpiEstudiantes">{{ total_estudiantes }}</div>
+                    <div class="kpi-label">Estudiantes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card kpi-card kpi-info" style="cursor:pointer;" data-kpi="profesores">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="kpi-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                <div>
+                    <div class="kpi-value" id="kpiProfesores">{{ total_profesores }}</div>
+                    <div class="kpi-label">Profesores</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card kpi-card kpi-secondary" style="cursor:pointer;" data-kpi="materias">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="kpi-icon"><i class="fas fa-book"></i></div>
+                <div>
+                    <div class="kpi-value" id="kpiMaterias">{{ total_materias }}</div>
+                    <div class="kpi-label">Materias</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card kpi-card kpi-warning" style="cursor:pointer;" data-kpi="programas">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="kpi-icon"><i class="fas fa-project-diagram"></i></div>
+                <div>
+                    <div class="kpi-value" id="kpiProgramas">{{ total_programas }}</div>
+                    <div class="kpi-label">Programas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card kpi-card kpi-success" style="cursor:pointer;" data-kpi="asistencia">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="kpi-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div>
+                    <div class="kpi-value" id="kpiAsistencia">{{ asistencia_promedio }}%</div>
+                    <div class="kpi-label">Asistencia</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6">
+        <div class="card kpi-card kpi-danger" style="cursor:pointer;" data-kpi="promedio">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="kpi-icon"><i class="fas fa-star-half-alt"></i></div>
+                <div>
+                    <div class="kpi-value" id="kpiPromedio">{{ promedio_academico }}</div>
+                    <div class="kpi-label">Promedio</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fas fa-chart-bar text-primary"></i> Aprobados vs Reprobados
+            </div>
+            <div class="card-body chart-container">
+                <canvas id="chartAprobados" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fas fa-chart-line text-primary"></i> Asistencia por Materia
+            </div>
+            <div class="card-body chart-container">
+                <canvas id="chartAsistencia" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not es_profesor %}
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fas fa-chart-pie text-primary"></i> Estudiantes por Programa
+                <small class="text-muted ms-auto"><i class="fas fa-mouse-pointer me-1"></i>Clic para filtrar</small>
+            </div>
+            <div class="card-body chart-container">
+                <canvas id="chartProgramas" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                <i class="fas fa-info-circle text-primary"></i> Accesos Rápidos
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <a href="{% url 'estudiantes:crear' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-plus me-1"></i> Nuevo Estudiante
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'profesores:crear' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-tie me-1"></i> Nuevo Profesor
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'materias:crear' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-book-medical me-1"></i> Nueva Materia
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'asignaciones:crear' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-link me-1"></i> Nueva Asignación
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'reportes:seleccionar_materia' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-file-pdf me-1"></i> Generar Reporte
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="{% url 'auth_app:usuario_lista' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-users-cog me-1"></i> Gestionar Usuarios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js DataLabels Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Register the datalabels plugin globally
+    Chart.register(ChartDataLabels);
+
+    // Store original values for reset
+    const originalKPIs = {
+        estudiantes: '{{ total_estudiantes }}',
+        profesores: '{{ total_profesores }}',
+        materias: '{{ total_materias }}',
+        programas: '{{ total_programas }}',
+        asistencia: '{{ asistencia_promedio }}%',
+        promedio: '{{ promedio_academico }}',
+        aprobados: {{ aprobados }},
+        reprobados: {{ reprobados }},
+    };
+
+    let chartAprobados, chartAsistencia, chartProgramas;
+    let activeFilter = null;
+
+    // === Gráfico de Aprobados vs Reprobados ===
+    const ctxAprobados = document.getElementById('chartAprobados');
+    if (ctxAprobados) {
+        chartAprobados = new Chart(ctxAprobados, {
+            type: 'doughnut',
+            data: {
+                labels: ['Aprobados', 'Reprobados'],
+                datasets: [{
+                    data: [{{ aprobados }}, {{ reprobados }}],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0,
+                    hoverOffset: 10,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 14 },
+                        formatter: (value, ctx) => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            if (total === 0) return '';
+                            const pct = Math.round(value / total * 100);
+                            return value + ' (' + pct + '%)';
+                        },
+                        display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                    }
+                },
+                cutout: '65%',
+            }
+        });
+    }
+
+    // === Gráfico de Asistencia por Materia ===
+    const asistData = JSON.parse('{{ asist_por_materia_json|escapejs }}');
+    const ctxAsist = document.getElementById('chartAsistencia');
+    if (ctxAsist && asistData.length > 0) {
+        chartAsistencia = new Chart(ctxAsist, {
+            type: 'bar',
+            data: {
+                labels: asistData.map(d => d.materia),
+                datasets: [{
+                    label: '% Asistencia',
+                    data: asistData.map(d => d.porcentaje),
+                    backgroundColor: 'rgba(9,132,59,0.7)',
+                    borderColor: '#09843B',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#09843B',
+                        font: { weight: 'bold', size: 11 },
+                        formatter: v => v.toFixed(1) + '%',
+                    }
+                }
+            }
+        });
+    }
+
+    {% if not es_profesor %}
+    // === Gráfico de Estudiantes por Programa (INTERACTIVO) ===
+    const progData = JSON.parse('{{ est_por_programa_json|escapejs }}');
+    const ctxProg = document.getElementById('chartProgramas');
+    if (ctxProg && progData.length > 0) {
+        const chartColors = ['#09843B', '#23987E', '#268CFF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+        chartProgramas = new Chart(ctxProg, {
+            type: 'pie',
+            data: {
+                labels: progData.map(d => d.nombre),
+                datasets: [{
+                    data: progData.map(d => d.total),
+                    backgroundColor: chartColors.slice(0, progData.length),
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 12 },
+                        formatter: (value, ctx) => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            if (total === 0 || value === 0) return '';
+                            return value + ' (' + Math.round(value / total * 100) + '%)';
+                        },
+                        display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                    }
+                },
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const programaId = progData[index].id;
+                        const programaNombre = progData[index].nombre;
+                        applyProgramFilter(programaId, programaNombre);
+                    }
+                }
+            }
+        });
+    }
+
+    // === INTERACTIVE FILTER LOGIC ===
+    function applyProgramFilter(programaId, programaNombre) {
+        activeFilter = programaId;
+
+        // Show filter badge
+        const badge = document.getElementById('filterBadge');
+        badge.classList.remove('d-none');
+        badge.classList.add('d-flex');
+        document.getElementById('filterProgramName').textContent = programaNombre;
+
+        // Animate KPI cards
+        document.querySelectorAll('.kpi-card').forEach(card => {
+            card.style.opacity = '0.5';
+            card.style.transition = 'opacity 0.3s';
+        });
+
+        // Fetch filtered data
+        fetch(`/dashboard/filter/?programa_id=${programaId}`)
+            .then(r => r.json())
+            .then(data => {
+                // Update KPIs with animation
+                animateKPI('kpiEstudiantes', data.total_estudiantes);
+                animateKPI('kpiProfesores', data.total_profesores);
+                animateKPI('kpiMaterias', data.total_materias);
+                animateKPI('kpiProgramas', data.total_programas);
+                animateKPI('kpiAsistencia', data.asistencia_promedio + '%');
+                animateKPI('kpiPromedio', data.promedio_academico);
+
+                // Update Aprobados chart
+                if (chartAprobados) {
+                    chartAprobados.data.datasets[0].data = [data.aprobados, data.reprobados];
+                    chartAprobados.update('active');
+                }
+
+                // Update Asistencia chart
+                if (chartAsistencia && data.asist_por_materia) {
+                    chartAsistencia.data.labels = data.asist_por_materia.map(d => d.materia);
+                    chartAsistencia.data.datasets[0].data = data.asist_por_materia.map(d => d.porcentaje);
+                    chartAsistencia.update('active');
+                }
+
+                // Restore KPI opacity
+                document.querySelectorAll('.kpi-card').forEach(card => {
+                    card.style.opacity = '1';
+                });
+            })
+            .catch(err => {
+                console.error('Error al filtrar:', err);
+                document.querySelectorAll('.kpi-card').forEach(card => {
+                    card.style.opacity = '1';
+                });
+            });
+    }
+
+    function animateKPI(elementId, newValue) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        el.style.transform = 'scale(0.8)';
+        el.style.transition = 'transform 0.2s';
+        setTimeout(() => {
+            el.textContent = newValue;
+            el.style.transform = 'scale(1.1)';
+            setTimeout(() => { el.style.transform = 'scale(1)'; }, 150);
+        }, 200);
+    }
+
+    // Clear filter button
+    const btnClear = document.getElementById('btnClearFilter');
+    if (btnClear) {
+        btnClear.addEventListener('click', function() {
+            activeFilter = null;
+            const badge = document.getElementById('filterBadge');
+            badge.classList.add('d-none');
+            badge.classList.remove('d-flex');
+
+            // Restore original KPIs
+            animateKPI('kpiEstudiantes', originalKPIs.estudiantes);
+            animateKPI('kpiProfesores', originalKPIs.profesores);
+            animateKPI('kpiMaterias', originalKPIs.materias);
+            animateKPI('kpiProgramas', originalKPIs.programas);
+            animateKPI('kpiAsistencia', originalKPIs.asistencia);
+            animateKPI('kpiPromedio', originalKPIs.promedio);
+
+            // Restore charts
+            if (chartAprobados) {
+                chartAprobados.data.datasets[0].data = [originalKPIs.aprobados, originalKPIs.reprobados];
+                chartAprobados.update('active');
+            }
+            if (chartAsistencia) {
+                chartAsistencia.data.labels = asistData.map(d => d.materia);
+                chartAsistencia.data.datasets[0].data = asistData.map(d => d.porcentaje);
+                chartAsistencia.update('active');
+            }
+        });
+    }
+    {% endif %}
+});
+</script>
+{% endblock %}

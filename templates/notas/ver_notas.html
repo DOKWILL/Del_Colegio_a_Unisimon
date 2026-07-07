@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block title %}Ver Notas{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-chart-bar"></i> Resumen de Calificaciones</h2><a href="{% url 'notas:seleccionar_materia' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+<div class="card mb-3"><div class="card-body"><div class="row"><div class="col-md-3"><strong>Materia:</strong> {{ asignacion.materia.nombre }}</div><div class="col-md-3"><strong>Profesor:</strong> {{ asignacion.profesor.nombres }}</div><div class="col-md-3"><strong>Programa:</strong> {{ asignacion.programa.nombre }}</div><div class="col-md-3"><strong>Periodo:</strong> {{ asignacion.periodo }}</div></div></div></div>
+<!-- KPIs -->
+<div class="row g-3 mb-4"><div class="col-md-3"><div class="card kpi-card kpi-primary"><div class="card-body text-center"><div class="kpi-value">{{ total }}</div><div class="kpi-label">Estudiantes</div></div></div></div>
+<div class="col-md-3"><div class="card kpi-card kpi-success"><div class="card-body text-center"><div class="kpi-value">{{ aprobados }}</div><div class="kpi-label">Aprobados</div></div></div></div>
+<div class="col-md-3"><div class="card kpi-card kpi-danger"><div class="card-body text-center"><div class="kpi-value">{{ reprobados }}</div><div class="kpi-label">Reprobados</div></div></div></div>
+<div class="col-md-3"><div class="card kpi-card kpi-info"><div class="card-body text-center"><div class="kpi-value">{{ promedio }}</div><div class="kpi-label">Promedio Curso</div></div></div></div></div>
+<div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0" id="tabla-notas">
+<thead><tr><th>#</th><th>Estudiante</th><th>Parcial 1</th><th>Parcial 2</th><th>Parcial 3</th><th>Definitiva</th><th>Estado</th></tr></thead>
+<tbody>{% for nota in notas %}<tr>
+<td>{{ forloop.counter }}</td><td><strong>{{ nota.estudiante.nombre_apellido }}</strong></td>
+<td class="text-center">{% if nota.parcial1 is not None %}{{ nota.parcial1 }}{% else %}-{% endif %}</td>
+<td class="text-center">{% if nota.parcial2 is not None %}{{ nota.parcial2 }}{% else %}-{% endif %}</td>
+<td class="text-center">{% if nota.parcial3 is not None %}{{ nota.parcial3 }}{% else %}-{% endif %}</td>
+<td class="text-center fw-bold">{% if nota.definitiva is not None %}{{ nota.definitiva }}{% else %}-{% endif %}</td>
+<td>{% if nota.estado == 'Aprobado' %}<span class="badge-aprobado">Aprobado</span>{% elif nota.estado == 'Reprobado' %}<span class="badge-reprobado">Reprobado</span>{% else %}-{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div></div></div>{% endblock %}
+{% block extra_js %}<script>$(document).ready(function(){$('#tabla-notas').DataTable({language:{url:'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json'},pageLength:25,order:[[1,'asc']]});});</script>{% endblock %}

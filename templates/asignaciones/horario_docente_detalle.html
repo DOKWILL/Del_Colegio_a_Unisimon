@@ -1,0 +1,186 @@
+{% extends "base.html" %}{% load static %}{% block title %}Horario - {{ profesor.nombres }}{% endblock %}{% block content %}
+<div class="page-header">
+    <h2><i class="fas fa-calendar-week"></i> Horario Semanal</h2>
+    <div>
+        <button onclick="window.print()" class="btn btn-outline-primary me-2"><i class="fas fa-print me-1"></i> Imprimir</button>
+        <a href="{% url 'asignaciones:horario_docentes' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a>
+    </div>
+</div>
+
+<!-- Alerta de cruces de horario -->
+{% if cruces_horario %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <h6 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle me-2"></i>⚠️ Cruces de Horario Detectados para {{ profesor.nombres }}</h6>
+    {% for cruce in cruces_horario %}
+    <div class="mb-2 p-2 bg-white rounded border border-danger">
+        <strong>{{ cruce.dia }}:</strong>
+        <span class="text-danger fw-bold">"{{ cruce.materia1 }}"</span> ({{ cruce.horario1 }} — {{ cruce.aula1 }})
+        <i class="fas fa-exchange-alt mx-2 text-danger"></i>
+        <span class="text-danger fw-bold">"{{ cruce.materia2 }}"</span> ({{ cruce.horario2 }} — {{ cruce.aula2 }})
+        <br><small class="text-muted"><i class="fas fa-info-circle me-1"></i>Estas materias se solapan en horario. El docente no puede estar en dos clases al mismo tiempo.</small>
+    </div>
+    {% endfor %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Info del docente -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-1 text-center">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                     style="width:60px; height:60px; background: linear-gradient(135deg, #09843B, #23987E); color:white; font-size:1.5rem;">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <h4 class="fw-bold mb-1">{{ profesor.nombres }}</h4>
+                <p class="text-muted mb-0"><i class="fas fa-id-card me-1"></i> {{ profesor.identificacion }} | <i class="fas fa-envelope me-1"></i> {{ profesor.email }}</p>
+            </div>
+            <div class="col-md-6">
+                <div class="row g-2 text-center">
+                    <div class="col-3">
+                        <div class="bg-light rounded p-3">
+                            <div class="fw-bold text-primary" style="font-size:1.8rem;">{{ total_materias }}</div>
+                            <small class="text-muted">Materias</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light rounded p-3">
+                            <div class="fw-bold text-success" style="font-size:1.8rem;">{{ total_horas }}{% if total_minutos %}:{{ total_minutos|stringformat:"02d" }}{% endif %}</div>
+                            <small class="text-muted">Horas/Sem</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light rounded p-3">
+                            <div class="fw-bold text-info" style="font-size:1.8rem;">{{ dias_activos }}</div>
+                            <small class="text-muted">Días</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="bg-light rounded p-3">
+                            <div class="fw-bold {% if cruces_horario %}text-danger{% else %}text-success{% endif %}" style="font-size:1.8rem;">
+                                {% if cruces_horario %}{{ cruces_horario|length }}{% else %}0{% endif %}
+                            </div>
+                            <small class="text-muted">Cruces</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Horario semanal tipo grilla -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold"><i class="fas fa-table me-2 text-primary"></i>Horario Lunes a Sábado</h5>
+        {% if cruces_horario %}
+        <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>{{ cruces_horario|length }} cruce{{ cruces_horario|length|pluralize:"s" }}</span>
+        {% else %}
+        <span class="badge bg-success"><i class="fas fa-check me-1"></i>Sin cruces</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0" id="tabla-horario">
+                <thead>
+                    <tr style="background: linear-gradient(135deg, #09843B, #23987E); color: white;">
+                        <th class="text-center" style="width:14%">Día</th>
+                        <th class="text-center" style="width:18%">Hora</th>
+                        <th style="width:22%">Materia</th>
+                        <th style="width:18%">Programa</th>
+                        <th style="width:16%">Espacio Físico</th>
+                        <th class="text-center" style="width:6%">Duración</th>
+                        <th class="text-center" style="width:6%">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for dia in horario_semanal %}
+                    {% if dia.tiene_clases %}
+                        {% for asig in dia.asignaciones %}
+                        <tr class="{% if asig.tiene_cruce %}table-danger{% endif %}">
+                            {% if forloop.first %}
+                            <td rowspan="{{ dia.asignaciones|length }}" class="align-middle text-center fw-bold"
+                                style="background-color: {% if dia.dia_key == 'lunes' %}#e8f5e9{% elif dia.dia_key == 'martes' %}#e3f2fd{% elif dia.dia_key == 'miercoles' %}#fff3e0{% elif dia.dia_key == 'jueves' %}#f3e5f5{% elif dia.dia_key == 'viernes' %}#e0f2f1{% else %}#fce4ec{% endif %};">
+                                <div style="font-size:1.1rem;">{{ dia.dia_nombre }}</div>
+                                <small class="text-muted">{{ dia.horas }}{% if dia.minutos %}:{{ dia.minutos|stringformat:"02d" }}{% endif %}h</small>
+                            </td>
+                            {% endif %}
+                            <td class="text-center align-middle">
+                                {% if asig.hora_inicio and asig.hora_fin %}
+                                <span class="badge {% if asig.tiene_cruce %}bg-danger{% else %}bg-dark{% endif %}">{{ asig.hora_inicio|time:"H:i" }} - {{ asig.hora_fin|time:"H:i" }}</span>
+                                {% else %}
+                                <span class="text-muted">{{ asig.horario|default:"-" }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                <strong>{{ asig.materia.nombre }}</strong>
+                                <br><small class="text-muted">{{ asig.materia.codigo }}</small>
+                            </td>
+                            <td class="align-middle">{{ asig.programa.nombre }}</td>
+                            <td class="align-middle">
+                                {% if asig.aula %}
+                                <i class="fas fa-door-open text-muted me-1"></i>{{ asig.aula.nombre }}
+                                <br><small class="text-muted">{{ asig.aula.sede }}</small>
+                                {% else %}
+                                <span class="text-muted">Sin asignar</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center align-middle">
+                                {% if asig.hora_inicio and asig.hora_fin %}
+                                <span class="fw-bold">{{ asig.duracion_display }}</span>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="text-center align-middle">
+                                {% if asig.tiene_cruce %}
+                                <span class="badge bg-danger" title="Cruce de horario detectado"><i class="fas fa-exclamation-triangle"></i></span>
+                                {% else %}
+                                <span class="badge bg-success"><i class="fas fa-check"></i></span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td class="text-center fw-bold align-middle"
+                                style="background-color: #f5f5f5; color: #bbb;">
+                                {{ dia.dia_nombre }}
+                            </td>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                <i class="fas fa-coffee me-2"></i>Sin clases programadas
+                            </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f0f4f8;">
+                        <td colspan="5" class="text-end fw-bold">Total de horas semanales:</td>
+                        <td class="text-center fw-bold fs-5 text-success" colspan="2">{{ total_horas }}{% if total_minutos %}:{{ total_minutos|stringformat:"02d" }}{% endif %}h</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Leyenda -->
+<div class="alert alert-light border mt-3">
+    <div class="row">
+        <div class="col-md-6">
+            <h6 class="fw-bold"><i class="fas fa-info-circle text-primary me-1"></i> Convenciones</h6>
+            <p class="mb-1 small"><span class="badge bg-success"><i class="fas fa-check"></i></span> Sin conflictos de horario</p>
+            <p class="mb-0 small"><span class="badge bg-danger"><i class="fas fa-exclamation-triangle"></i></span> Cruce de horario detectado — Las materias se solapan en el mismo día y hora</p>
+        </div>
+        <div class="col-md-6">
+            <h6 class="fw-bold"><i class="fas fa-clock text-success me-1"></i> Regla de Solapamiento</h6>
+            <p class="mb-0 small">Dos clases se cruzan cuando el inicio de una es anterior al fin de la otra y viceversa.<br>
+            <strong>Ejemplo:</strong> 8:00-12:00 cruza con 10:00-12:00 y con 8:00-10:00</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

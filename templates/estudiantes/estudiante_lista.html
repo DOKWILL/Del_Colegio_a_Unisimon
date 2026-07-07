@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Estudiantes{% endblock %}
+{% block page_title %}<i class="fas fa-user-graduate"></i> Gestión de Estudiantes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="fas fa-user-graduate"></i> Estudiantes</h2>
+    {% if user.es_admin %}
+    <a href="{% url 'estudiantes:crear' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i> Nuevo Estudiante
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o ID..." value="{{ query }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="programa" class="form-select">
+                    <option value="">Todos los programas</option>
+                    {% for prog in programas %}
+                    <option value="{{ prog.id }}" {% if programa_id == prog.id|stringformat:"d" %}selected{% endif %}>{{ prog.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="estado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if estado == "activo" %}selected{% endif %}>Activos</option>
+                    <option value="inactivo" {% if estado == "inactivo" %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="tabla-estudiantes">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre</th>
+                        <th>Tipo ID</th>
+                        <th>Identificación</th>
+                        <th>Programa</th>
+                        <th>Colegio</th>
+                        <th>Estado</th>
+                        <th>Fecha Registro</th>
+                        {% if user.es_admin %}<th>Acciones</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for est in estudiantes %}
+                    <tr class="animate-in">
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ est.nombre_apellido }}</strong></td>
+                        <td>{{ est.tipo_identificacion }}</td>
+                        <td>{{ est.identificacion }}</td>
+                        <td>{{ est.programa.nombre }}</td>
+                        <td>{{ est.colegio.nombre }}</td>
+                        <td>
+                            {% if est.activo %}
+                            <span class="badge-activo"><span class="status-dot active"></span>Activo</span>
+                            {% else %}
+                            <span class="badge-inactivo"><span class="status-dot inactive"></span>Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ est.fecha_registro|date:"d/m/Y" }}</td>
+                        {% if user.es_admin %}
+                        <td>
+                            <a href="{% url 'estudiantes:editar' est.pk %}" class="btn btn-sm btn-outline-primary btn-icon" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'estudiantes:eliminar' est.pk %}" class="btn btn-sm btn-outline-danger btn-icon" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No se encontraron estudiantes.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#tabla-estudiantes').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json' },
+        pageLength: 15,
+        order: [[1, 'asc']],
+        responsive: true,
+    });
+});
+</script>
+{% endblock %}

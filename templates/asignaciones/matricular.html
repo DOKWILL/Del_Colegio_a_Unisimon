@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block title %}Matricular Estudiantes{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-user-plus"></i> Matricular Estudiantes</h2><a href="{% url 'asignaciones:lista' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+<div class="card mb-4"><div class="card-body">
+<div class="row"><div class="col-md-4"><strong>Materia:</strong> {{ asignacion.materia.nombre }}</div><div class="col-md-4"><strong>Profesor:</strong> {{ asignacion.profesor.nombres }}</div><div class="col-md-4"><strong>Programa:</strong> {{ asignacion.programa.nombre }}</div></div>
+</div></div>
+<div class="row">
+<div class="col-md-6">
+<div class="card"><div class="card-header"><i class="fas fa-users me-2"></i>Estudiantes Matriculados ({{ matriculados.count }})</div>
+<div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>#</th><th>Estudiante</th><th>ID</th><th>Acción</th></tr></thead><tbody>
+{% for mat in matriculados %}<tr><td>{{ forloop.counter }}</td><td>{{ mat.estudiante.nombre_apellido }}</td><td>{{ mat.estudiante.identificacion }}</td>
+<td><a href="{% url 'asignaciones:desmatricular' asignacion.pk mat.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Desmatricular?')"><i class="fas fa-user-minus"></i></a></td></tr>
+{% empty %}<tr><td colspan="4" class="text-center text-muted py-3">Sin estudiantes matriculados.</td></tr>{% endfor %}
+</tbody></table></div></div></div></div>
+<div class="col-md-6">
+<div class="card"><div class="card-header"><i class="fas fa-user-plus me-2"></i>Agregar Estudiantes</div>
+<div class="card-body">
+{% if form.estudiantes.field.queryset.count > 0 %}
+<form method="post">{% csrf_token %}
+<div style="max-height:400px;overflow-y:auto;">
+{% for est in form.estudiantes.field.queryset %}
+<div class="form-check mb-2"><input type="checkbox" name="estudiantes" value="{{ est.id }}" class="form-check-input" id="est-{{ est.id }}"><label class="form-check-label" for="est-{{ est.id }}">{{ est.nombre_apellido }} ({{ est.identificacion }})</label></div>
+{% endfor %}
+</div>
+<button type="submit" class="btn btn-success mt-3 w-100"><i class="fas fa-plus me-1"></i> Matricular Seleccionados</button>
+</form>
+{% else %}<p class="text-muted text-center">No hay estudiantes disponibles del programa <strong>{{ asignacion.programa.nombre }}</strong>.</p>{% endif %}
+</div></div></div></div>{% endblock %}

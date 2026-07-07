@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}{{ titulo }}{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-user-plus"></i> {{ titulo }}</h2><a href="{% url 'auth_app:usuario_lista' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+<div class="card"><div class="card-body"><form method="post" novalidate>{% csrf_token %}{% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+<div class="row g-3">{% for field in form %}<div class="col-md-6"><label class="form-label">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}</div>{% endfor %}</div>
+<div class="mt-4"><button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> {{ accion }}</button></div></form></div></div>{% endblock %}

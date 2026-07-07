@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Profesores{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h2><i class="fas fa-chalkboard-teacher"></i> Profesores</h2>
+    <a href="{% url 'profesores:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nuevo Profesor</a>
+</div>
+<div class="card mb-3"><div class="card-body">
+<form method="get" class="row g-2"><div class="col-md-6"><div class="search-bar"><i class="fas fa-search"></i><input type="text" name="q" class="form-control" placeholder="Buscar..." value="{{ query }}"></div></div><div class="col-md-2"><button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Buscar</button></div></form>
+</div></div>
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+<table class="table table-hover mb-0" id="tabla-profesores">
+<thead><tr><th>#</th><th>Nombres</th><th>Identificación</th><th>Teléfono</th><th>Correo</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>
+{% for prof in profesores %}
+<tr class="animate-in">
+    <td>{{ forloop.counter }}</td>
+    <td><strong>{{ prof.nombres }}</strong></td>
+    <td>{{ prof.identificacion }}</td>
+    <td>{{ prof.telefono }}</td>
+    <td>{{ prof.correo }}</td>
+    <td>{% if prof.activo %}<span class="badge-activo"><span class="status-dot active"></span>Activo</span>{% else %}<span class="badge-inactivo"><span class="status-dot inactive"></span>Inactivo</span>{% endif %}</td>
+    <td>
+        <a href="{% url 'profesores:editar' prof.pk %}" class="btn btn-sm btn-outline-primary btn-icon"><i class="fas fa-edit"></i></a>
+        <a href="{% url 'profesores:eliminar' prof.pk %}" class="btn btn-sm btn-outline-danger btn-icon"><i class="fas fa-trash"></i></a>
+    </td>
+</tr>
+{% empty %}<tr><td colspan="7" class="text-center text-muted py-4">No hay profesores registrados.</td></tr>{% endfor %}
+</tbody></table></div></div></div>
+{% endblock %}
+{% block extra_js %}<script>$(document).ready(function(){$('#tabla-profesores').DataTable({language:{url:'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json'},pageLength:15,responsive:true});});</script>{% endblock %}

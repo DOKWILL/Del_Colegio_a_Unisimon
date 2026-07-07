@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block title %}Registrar Notas{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-star-half-alt"></i> Registrar Calificaciones</h2><a href="{% url 'notas:seleccionar_materia' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+<div class="card mb-3"><div class="card-body"><div class="row"><div class="col-md-4"><strong>Materia:</strong> {{ asignacion.materia.nombre }}</div><div class="col-md-4"><strong>Profesor:</strong> {{ asignacion.profesor.nombres }}</div><div class="col-md-4"><strong>Programa:</strong> {{ asignacion.programa.nombre }}</div></div></div></div>
+<div class="card"><div class="card-body">
+<form method="post">{% csrf_token %}
+<div class="table-responsive"><table class="table table-hover">
+<thead><tr><th>#</th><th>Estudiante</th><th>Parcial 1 (30%)</th><th>Parcial 2 (30%)</th><th>Parcial 3 (40%)</th><th>Definitiva</th><th>Estado</th></tr></thead>
+<tbody>{% for nota in notas %}<tr>
+<td>{{ forloop.counter }}</td><td><strong>{{ nota.estudiante.nombre_apellido }}</strong></td>
+<td><input type="number" name="parcial1_{{ nota.estudiante.id }}" class="form-control form-control-sm grade-input parcial1" value="{{ nota.parcial1|default:'' }}" step="0.1" min="0" max="5"></td>
+<td><input type="number" name="parcial2_{{ nota.estudiante.id }}" class="form-control form-control-sm grade-input parcial2" value="{{ nota.parcial2|default:'' }}" step="0.1" min="0" max="5"></td>
+<td><input type="number" name="parcial3_{{ nota.estudiante.id }}" class="form-control form-control-sm grade-input parcial3" value="{{ nota.parcial3|default:'' }}" step="0.1" min="0" max="5"></td>
+<td class="definitiva-preview fw-bold text-center">{% if nota.definitiva is not None %}{{ nota.definitiva }}{% else %}-{% endif %}</td>
+<td>{% if nota.estado == 'Aprobado' %}<span class="badge-aprobado">{{ nota.estado }}</span>{% elif nota.estado == 'Reprobado' %}<span class="badge-reprobado">{{ nota.estado }}</span>{% else %}-{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div>
+<button type="submit" class="btn btn-success btn-lg w-100"><i class="fas fa-save me-1"></i> Guardar Calificaciones</button>
+</form></div></div>{% endblock %}

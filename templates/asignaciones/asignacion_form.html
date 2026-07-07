@@ -1,0 +1,77 @@
+{% extends "base.html" %}{% block title %}{{ titulo }}{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-link"></i> {{ titulo }}</h2><a href="{% url 'asignaciones:lista' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+
+{% if form.non_field_errors %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    {% for error in form.non_field_errors %}
+    <strong>{{ error }}</strong>{% if not forloop.last %}<br>{% endif %}
+    {% endfor %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="card"><div class="card-body"><form method="post" novalidate>{% csrf_token %}
+
+<!-- Sección: Datos académicos -->
+<h6 class="fw-bold text-primary mb-3"><i class="fas fa-book me-2"></i>Datos Académicos</h6>
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <label class="form-label">{{ form.materia.label }}</label>{{ form.materia }}
+        {% if form.materia.errors %}<div class="text-danger small">{{ form.materia.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">{{ form.programa.label }}</label>{{ form.programa }}
+        {% if form.programa.errors %}<div class="text-danger small">{{ form.programa.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">{{ form.profesor.label }}</label>{{ form.profesor }}
+        {% if form.profesor.errors %}<div class="text-danger small">{{ form.profesor.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">{{ form.periodo.label }}</label>{{ form.periodo }}
+        {% if form.periodo.errors %}<div class="text-danger small">{{ form.periodo.errors.0 }}</div>{% endif %}
+    </div>
+</div>
+
+<hr>
+
+<!-- Sección: Horario y Espacio -->
+<h6 class="fw-bold text-primary mb-3"><i class="fas fa-clock me-2"></i>Horario y Espacio Físico</h6>
+<div class="alert alert-info small py-2 mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    El sistema detecta automáticamente cruces de horario por docente o espacio físico en el mismo periodo.
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">{{ form.dia_semana.label }}</label>{{ form.dia_semana }}
+        {% if form.dia_semana.help_text %}<div class="form-text">{{ form.dia_semana.help_text }}</div>{% endif %}
+        {% if form.dia_semana.errors %}<div class="text-danger small">{{ form.dia_semana.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">{{ form.hora_inicio.label }}</label>{{ form.hora_inicio }}
+        {% if form.hora_inicio.errors %}<div class="text-danger small">{{ form.hora_inicio.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">{{ form.hora_fin.label }}</label>{{ form.hora_fin }}
+        {% if form.hora_fin.errors %}<div class="text-danger small">{{ form.hora_fin.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-5">
+        <label class="form-label">{{ form.aula.label }}</label>{{ form.aula }}
+        {% if form.aula.errors %}<div class="text-danger small">{{ form.aula.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">{{ form.horario.label }}</label>{{ form.horario }}
+        {% if form.horario.help_text %}<div class="form-text">{{ form.horario.help_text }}</div>{% endif %}
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+        <div class="form-check">{{ form.activa }} <label class="form-check-label ms-2">{{ form.activa.label }}</label></div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save me-1"></i> {{ accion }}</button>
+    <a href="{% url 'asignaciones:lista' %}" class="btn btn-outline-secondary btn-lg ms-2">Cancelar</a>
+</div>
+</form></div></div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}{% block title %}Horarios por Docente{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-calendar-alt"></i> Horarios por Docente</h2></div>
+
+<div class="row g-3">
+{% for r in resumen %}
+<div class="col-md-6 col-lg-4">
+    <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                     style="width:50px; height:50px; background: linear-gradient(135deg, #09843B, #23987E); color:white; font-size:1.2rem;">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">{{ r.profesor.nombres }}</h6>
+                    <small class="text-muted">{{ r.profesor.identificacion }}</small>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-4 text-center">
+                    <div class="bg-light rounded p-2">
+                        <div class="fw-bold text-primary fs-5">{{ r.total_materias }}</div>
+                        <small class="text-muted">Materias</small>
+                    </div>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="bg-light rounded p-2">
+                        <div class="fw-bold text-success fs-5">{{ r.total_horas }}{% if r.total_minutos %}:{{ r.total_minutos|stringformat:"02d" }}{% endif %}</div>
+                        <small class="text-muted">Horas</small>
+                    </div>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="bg-light rounded p-2">
+                        <div class="fw-bold text-info fs-5">{{ r.num_dias }}</div>
+                        <small class="text-muted">Días</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Días con clase (mini badges) -->
+            <div class="mb-3">
+                {% for dia in "lunes,martes,miercoles,jueves,viernes,sabado"|make_list %}{% endfor %}
+                {% if "lunes" in r.dias_con_clase %}<span class="badge bg-success me-1">Lun</span>{% else %}<span class="badge bg-light text-muted me-1">Lun</span>{% endif %}
+                {% if "martes" in r.dias_con_clase %}<span class="badge bg-success me-1">Mar</span>{% else %}<span class="badge bg-light text-muted me-1">Mar</span>{% endif %}
+                {% if "miercoles" in r.dias_con_clase %}<span class="badge bg-success me-1">Mié</span>{% else %}<span class="badge bg-light text-muted me-1">Mié</span>{% endif %}
+                {% if "jueves" in r.dias_con_clase %}<span class="badge bg-success me-1">Jue</span>{% else %}<span class="badge bg-light text-muted me-1">Jue</span>{% endif %}
+                {% if "viernes" in r.dias_con_clase %}<span class="badge bg-success me-1">Vie</span>{% else %}<span class="badge bg-light text-muted me-1">Vie</span>{% endif %}
+                {% if "sabado" in r.dias_con_clase %}<span class="badge bg-success me-1">Sáb</span>{% else %}<span class="badge bg-light text-muted me-1">Sáb</span>{% endif %}
+            </div>
+
+            <a href="{% url 'asignaciones:horario_docente_detalle' r.profesor.pk %}" class="btn btn-primary w-100">
+                <i class="fas fa-calendar-week me-1"></i> Ver Horario Completo
+            </a>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="col-12">
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle me-2"></i> No hay docentes con asignaciones activas.
+    </div>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

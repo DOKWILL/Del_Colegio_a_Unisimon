@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% block title %}Registrar Asistencia{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-clipboard-check"></i> Registrar Asistencia</h2><a href="{% url 'asistencia:seleccionar_materia' %}" class="btn btn-outline-primary"><i class="fas fa-arrow-left me-1"></i> Volver</a></div>
+<div class="card mb-3"><div class="card-body"><div class="row"><div class="col-md-4"><strong>Materia:</strong> {{ asignacion.materia.nombre }}</div><div class="col-md-4"><strong>Profesor:</strong> {{ asignacion.profesor.nombres }}</div><div class="col-md-4"><strong>Programa:</strong> {{ asignacion.programa.nombre }}</div></div></div></div>
+
+{% if es_nivelacion %}
+<div class="alert alert-warning d-flex align-items-center">
+    <i class="fas fa-star fa-2x me-3"></i>
+    <div>
+        <h5 class="mb-1">Encuentro de Nivelación</h5>
+        <p class="mb-0">Este es el encuentro #{{ ENCUENTRO_NIVELACION }} de nivelación. Solo aplica para estudiantes que faltaron a 1 o 2 encuentros regulares.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card"><div class="card-body">
+<form method="post">{% csrf_token %}
+<div class="row g-3 mb-4">
+<div class="col-md-3"><label class="form-label">Fecha</label><input type="date" name="fecha" class="form-control" value="{{ fecha_hoy|date:'Y-m-d' }}"></div>
+<div class="col-md-2"><label class="form-label">Encuentro #</label><input type="number" name="encuentro" class="form-control {% if es_nivelacion %}border-warning{% endif %}" value="{{ proximo_encuentro }}" min="1" max="{{ ENCUENTRO_NIVELACION }}"></div>
+<div class="col-md-2">
+    {% if es_nivelacion %}
+    <label class="form-label">Tipo</label>
+    <span class="badge bg-warning text-dark d-block py-2"><i class="fas fa-star me-1"></i> Nivelación</span>
+    {% endif %}
+</div>
+<div class="col-md-5"><label class="form-label">Observaciones generales</label><input type="text" name="observaciones" class="form-control" placeholder="Opcional"></div>
+</div>
+<div class="table-responsive"><table class="table table-hover">
+<thead><tr><th>#</th><th>Estudiante</th><th>Identificación</th><th>Estado</th><th>Observación</th></tr></thead>
+<tbody>{% for mat in matriculas %}<tr>
+<td>{{ forloop.counter }}</td><td><strong>{{ mat.estudiante.nombre_apellido }}</strong></td><td>{{ mat.estudiante.identificacion }}</td>
+<td>
+<label class="attendance-option"><input type="radio" name="estado_{{ mat.estudiante.id }}" value="presente" checked> Presente</label>
+<label class="attendance-option"><input type="radio" name="estado_{{ mat.estudiante.id }}" value="ausente"> Ausente</label>
+<label class="attendance-option"><input type="radio" name="estado_{{ mat.estudiante.id }}" value="excusa"> Excusa</label>
+<label class="attendance-option"><input type="radio" name="estado_{{ mat.estudiante.id }}" value="retardo"> Retardo</label>
+</td>
+<td><input type="text" name="obs_{{ mat.estudiante.id }}" class="form-control form-control-sm" placeholder="Opcional"></td>
+</tr>{% empty %}<tr><td colspan="5" class="text-center text-muted">No hay estudiantes matriculados.</td></tr>{% endfor %}</tbody></table></div>
+{% if matriculas %}<button type="submit" class="btn btn-success btn-lg w-100"><i class="fas fa-save me-1"></i> Guardar Asistencia{% if es_nivelacion %} — Nivelación{% endif %}</button>{% endif %}
+</form></div></div>{% endblock %}

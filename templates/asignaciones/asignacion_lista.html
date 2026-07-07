@@ -1,0 +1,85 @@
+{% extends "base.html" %}{% block title %}Asignaciones{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-link"></i> Asignaciones Académicas</h2><a href="{% url 'asignaciones:crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nueva Asignación</a></div>
+
+{% if cruces_detectados %}
+<div class="alert alert-danger border-danger">
+    <h6 class="fw-bold mb-3"><i class="fas fa-exclamation-triangle me-2"></i>⚠️ Cruces de Horario Detectados ({{ cruces_detectados|length }})</h6>
+    {% for cruce in cruces_detectados %}
+    <div class="mb-2 p-2 bg-white rounded border border-danger">
+        {% if cruce.tipo == 'profesor' %}
+        <div class="d-flex align-items-start">
+            <span class="badge bg-danger me-2 mt-1"><i class="fas fa-chalkboard-teacher"></i></span>
+            <div>
+                <strong>Docente: {{ cruce.profesor }}</strong> — {{ cruce.dia }} (Periodo {{ cruce.periodo }})
+                <div class="mt-1">
+                    <span class="badge bg-dark">{{ cruce.horario1 }}</span>
+                    <strong class="mx-1">{{ cruce.materia1 }}</strong>
+                    <small class="text-muted">({{ cruce.aula1 }})</small>
+                    <i class="fas fa-exchange-alt text-danger mx-2"></i>
+                    <span class="badge bg-dark">{{ cruce.horario2 }}</span>
+                    <strong class="mx-1">{{ cruce.materia2 }}</strong>
+                    <small class="text-muted">({{ cruce.aula2 }})</small>
+                </div>
+                <small class="text-danger"><i class="fas fa-info-circle me-1"></i>Los horarios se solapan: el docente no puede estar en dos clases al mismo tiempo.</small>
+            </div>
+        </div>
+        {% elif cruce.tipo == 'aula' %}
+        <div class="d-flex align-items-start">
+            <span class="badge bg-warning text-dark me-2 mt-1"><i class="fas fa-door-open"></i></span>
+            <div>
+                <strong>Espacio Físico: {{ cruce.aula }}</strong> — {{ cruce.dia }} (Periodo {{ cruce.periodo }})
+                <div class="mt-1">
+                    <span class="badge bg-dark">{{ cruce.horario1 }}</span>
+                    <strong class="mx-1">{{ cruce.materia1 }}</strong>
+                    <small class="text-muted">({{ cruce.profesor1 }})</small>
+                    <i class="fas fa-exchange-alt text-warning mx-2"></i>
+                    <span class="badge bg-dark">{{ cruce.horario2 }}</span>
+                    <strong class="mx-1">{{ cruce.materia2 }}</strong>
+                    <small class="text-muted">({{ cruce.profesor2 }})</small>
+                </div>
+                <small class="text-warning"><i class="fas fa-info-circle me-1"></i>El mismo espacio físico tiene dos clases al mismo tiempo.</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0" id="tabla-asignaciones">
+<thead><tr>
+    <th>#</th><th>Materia</th><th>Profesor</th><th>Programa</th><th>Aula</th>
+    <th>Día</th><th>Horario</th><th>Periodo</th><th>Estado</th><th>Acciones</th>
+</tr></thead>
+<tbody>{% for asig in asignaciones %}<tr class="{% if asig.tiene_cruce %}table-danger{% endif %}">
+<td>{{ forloop.counter }}</td>
+<td><strong>{{ asig.materia.nombre }}</strong><br><small class="text-muted">{{ asig.materia.codigo }}</small></td>
+<td>{{ asig.profesor.nombres }}</td>
+<td>{{ asig.programa.nombre }}</td>
+<td>{{ asig.aula|default:"-" }}</td>
+<td>{% if asig.dia_semana %}{{ asig.get_dia_semana_display }}{% else %}-{% endif %}</td>
+<td>
+    {% if asig.hora_inicio and asig.hora_fin %}
+    <span class="badge {% if asig.tiene_cruce %}bg-danger{% else %}bg-dark{% endif %}">{{ asig.hora_inicio|time:"H:i" }} - {{ asig.hora_fin|time:"H:i" }}</span>
+    {% else %}{{ asig.horario|default:"-" }}{% endif %}
+</td>
+<td>{{ asig.periodo }}</td>
+<td>
+    {% if asig.activa %}<span class="badge-activo">Activa</span>{% else %}<span class="badge-inactivo">Inactiva</span>{% endif %}
+    {% if asig.tiene_cruce %}<br><span class="badge bg-danger mt-1"><i class="fas fa-exclamation-triangle me-1"></i>Cruce</span>{% endif %}
+</td>
+<td>
+    <a href="{% url 'asignaciones:matricular' asig.pk %}" class="btn btn-sm btn-outline-success btn-icon" title="Matricular"><i class="fas fa-user-plus"></i></a>
+    <a href="{% url 'asignaciones:editar' asig.pk %}" class="btn btn-sm btn-outline-primary btn-icon" title="Editar"><i class="fas fa-edit"></i></a>
+    <a href="{% url 'asignaciones:eliminar' asig.pk %}" class="btn btn-sm btn-outline-danger btn-icon" title="Eliminar"><i class="fas fa-trash"></i></a>
+</td>
+</tr>{% empty %}<tr><td colspan="10" class="text-center text-muted py-4">No hay asignaciones.</td></tr>{% endfor %}</tbody></table></div></div></div>
+
+<!-- Leyenda de cruces -->
+<div class="alert alert-light border mt-3 small">
+    <strong><i class="fas fa-info-circle text-primary me-1"></i>Regla de solapamiento:</strong>
+    Dos clases se cruzan cuando el inicio de una es anterior al fin de la otra y viceversa.
+    <strong>Ejemplo:</strong> Si un profesor tiene clase de <code>8:00-10:00</code>, no puede tener otra de <code>9:00-11:00</code> el mismo día porque ambas se solapan entre 9:00 y 10:00.
+</div>
+{% endblock %}
+{% block extra_js %}<script>$(document).ready(function(){$('#tabla-asignaciones').DataTable({language:{url:'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json'},pageLength:15,order:[[0,'asc']]});});</script>{% endblock %}

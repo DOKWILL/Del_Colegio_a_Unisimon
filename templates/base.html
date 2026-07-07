@@ -1,0 +1,182 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Gestión Académica - Del Colegio a Unisimón - Universidad Simón Bolívar">
+    <title>{% block title %}Sistema de Gestión Académica{% endblock %} | Unisimón</title>
+
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'css/styles.css' %}?v=2.0" rel="stylesheet">
+</head>
+<body>
+    <!-- Dark mode JS (load early) -->
+    <script src="{% static 'js/dark-mode.js' %}"></script>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- ============ SIDEBAR ============ -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <img src="{% static 'img/escudo_unisimon.png' %}" alt="Escudo" style="height:55px; margin-bottom:8px; filter:brightness(0) invert(1);">
+            <h4>Del Colegio</h4>
+            <h4>a Unisimón</h4>
+            <small>Sistema de Gestión Académica</small>
+        </div>
+
+        <ul class="sidebar-menu">
+            <!-- Dashboard -->
+            <li class="menu-header">Principal</li>
+            <li class="menu-item">
+                <a href="{% url 'dashboard:index' %}" class="{% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </a>
+            </li>
+
+            {% if user.es_admin %}
+            <!-- Admin: Gestión -->
+            <li class="menu-header">Gestión</li>
+            <li class="menu-item">
+                <a href="{% url 'estudiantes:lista' %}" class="{% if request.resolver_match.app_name == 'estudiantes' %}active{% endif %}">
+                    <i class="fas fa-user-graduate"></i> Estudiantes
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'profesores:lista' %}" class="{% if request.resolver_match.app_name == 'profesores' %}active{% endif %}">
+                    <i class="fas fa-chalkboard-teacher"></i> Profesores
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'materias:programa_lista' %}" class="{% if request.resolver_match.url_name == 'programa_lista' %}active{% endif %}">
+                    <i class="fas fa-project-diagram"></i> Programas
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'materias:lista' %}" class="{% if request.resolver_match.app_name == 'materias' and request.resolver_match.url_name == 'lista' %}active{% endif %}">
+                    <i class="fas fa-book"></i> Materias
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'espacios:sede_lista' %}" class="{% if request.resolver_match.app_name == 'espacios' %}active{% endif %}">
+                    <i class="fas fa-building"></i> Espacios Físicos
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'asignaciones:lista' %}" class="{% if request.resolver_match.app_name == 'asignaciones' %}active{% endif %}">
+                    <i class="fas fa-link"></i> Asignaciones
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'estudiantes:colegio_lista' %}">
+                    <i class="fas fa-school"></i> Colegios
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Académico (ambos roles) -->
+            <li class="menu-header">Académico</li>
+            <li class="menu-item">
+                <a href="{% url 'asistencia:seleccionar_materia' %}" class="{% if request.resolver_match.app_name == 'asistencia' %}active{% endif %}">
+                    <i class="fas fa-clipboard-check"></i> Asistencia
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'notas:seleccionar_materia' %}" class="{% if request.resolver_match.app_name == 'notas' %}active{% endif %}">
+                    <i class="fas fa-star-half-alt"></i> Calificaciones
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'reportes:seleccionar_materia' %}" class="{% if request.resolver_match.app_name == 'reportes' %}active{% endif %}">
+                    <i class="fas fa-file-pdf"></i> Reportes
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'asignaciones:horario_docentes' %}" class="{% if request.resolver_match.url_name == 'horario_docentes' or request.resolver_match.url_name == 'horario_docente_detalle' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i> Horarios
+                </a>
+            </li>
+            {% if user.es_admin %}
+            <!-- Admin: Sistema -->
+            <li class="menu-header">Sistema</li>
+            <li class="menu-item">
+                <a href="{% url 'auth_app:usuario_lista' %}" class="{% if request.resolver_match.app_name == 'auth_app' and request.resolver_match.url_name == 'usuario_lista' %}active{% endif %}">
+                    <i class="fas fa-users-cog"></i> Usuarios
+                </a>
+            </li>
+            <li class="menu-item">
+                <a href="{% url 'auth_app:configuracion' %}">
+                    <i class="fas fa-cog"></i> Configuración
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- ============ TOPBAR ============ -->
+    <header class="topbar">
+        <div class="d-flex align-items-center gap-3">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <span class="topbar-title">
+                {% block page_title %}Dashboard{% endblock %}
+            </span>
+        </div>
+
+        <div class="topbar-actions">
+            <button class="dark-mode-toggle" id="dark-mode-toggle" title="Cambiar tema">
+                <i class="fas fa-moon" id="dark-mode-icon"></i>
+            </button>
+            <div class="topbar-user">
+                <i class="fas fa-user-circle"></i>
+                <span>{{ user.get_full_name|default:user.username }}</span>
+                <span class="badge bg-primary" style="font-size:0.65rem;">{{ user.rol }}</span>
+            </div>
+            <a href="{% url 'auth_app:logout' %}" class="btn btn-outline-danger btn-sm" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="main-content">
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <strong>Universidad Simón Bolívar</strong> — Ing. Wilson Castellanos — © 2026 Todos los derechos reservados.
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="{% static 'js/app.js' %}"></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

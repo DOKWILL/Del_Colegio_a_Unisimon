@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Usuarios{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-users-cog"></i> Gestión de Usuarios</h2><a href="{% url 'auth_app:usuario_crear' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i> Nuevo Usuario</a></div>
+<div class="card"><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover mb-0" id="tabla-usuarios">
+<thead><tr><th>#</th><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Profesor</th><th>Estado</th><th>Acciones</th></tr></thead>
+<tbody>{% for u in usuarios %}<tr>
+<td>{{ forloop.counter }}</td><td><strong>{{ u.username }}</strong></td><td>{{ u.get_full_name|default:"-" }}</td><td>{{ u.email|default:"-" }}</td>
+<td><span class="badge bg-primary">{{ u.rol|default:"-" }}</span></td><td>{{ u.profesor|default:"-" }}</td>
+<td>{% if u.bloqueado %}<span class="badge bg-dark">Bloqueado</span>{% elif u.is_active %}<span class="badge-activo">Activo</span>{% else %}<span class="badge-inactivo">Inactivo</span>{% endif %}</td>
+<td>
+<a href="{% url 'auth_app:usuario_editar' u.pk %}" class="btn btn-sm btn-outline-primary btn-icon" title="Editar"><i class="fas fa-edit"></i></a>
+<a href="{% url 'auth_app:cambiar_password' u.pk %}" class="btn btn-sm btn-outline-warning btn-icon" title="Cambiar contraseña"><i class="fas fa-key"></i></a>
+<a href="{% url 'auth_app:bloquear_usuario' u.pk %}" class="btn btn-sm btn-outline-{% if u.bloqueado %}success{% else %}dark{% endif %} btn-icon" title="{% if u.bloqueado %}Desbloquear{% else %}Bloquear{% endif %}"><i class="fas fa-{% if u.bloqueado %}unlock{% else %}lock{% endif %}"></i></a>
+<a href="{% url 'auth_app:usuario_eliminar' u.pk %}" class="btn btn-sm btn-outline-danger btn-icon" title="Eliminar"><i class="fas fa-trash"></i></a>
+</td></tr>{% endfor %}</tbody></table></div></div></div>
+{% endblock %}
+{% block extra_js %}<script>$(document).ready(function(){$('#tabla-usuarios').DataTable({language:{url:'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-CO.json'},pageLength:15});});</script>{% endblock %}

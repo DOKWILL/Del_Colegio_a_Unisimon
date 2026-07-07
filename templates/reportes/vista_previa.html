@@ -1,0 +1,92 @@
+{% extends "base.html" %}{% load static %}{% block title %}Reporte - {{ asignacion.materia.nombre }}{% endblock %}{% block content %}
+<div class="page-header"><h2><i class="fas fa-file-alt"></i> Vista Previa del Reporte</h2>
+<div class="no-print">
+    <button type="button" class="btn btn-danger me-1" id="btnDownloadPdf">
+        <i class="fas fa-file-pdf me-1"></i> Descargar PDF
+    </button>
+    <button type="button" class="btn btn-success me-1" id="btnDownloadExcel">
+        <i class="fas fa-file-excel me-1"></i> Exportar Excel
+    </button>
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="fas fa-print me-1"></i> Imprimir
+    </button>
+</div></div>
+<div class="card"><div class="card-body">
+<div class="text-center mb-3"><img src="{% static 'img/escudo_unisimon.png' %}" alt="Escudo" style="height:70px; margin-bottom:10px;"><h4 class="text-primary fw-bold">UNIVERSIDAD SIMÓN BOLÍVAR</h4><h5 style="color:#23987E;">DEL COLEGIO A UNISIMÓN</h5><p class="text-muted">Reporte de Calificaciones y Asistencia</p></div>
+<div class="row mb-4"><div class="col-md-6"><p><strong>Programa:</strong> {{ asignacion.programa.nombre }}</p><p><strong>Materia:</strong> {{ asignacion.materia.nombre }}</p><p><strong>Profesor:</strong> {{ asignacion.profesor.nombres }}</p></div><div class="col-md-6 text-md-end"><p><strong>Código:</strong> {{ asignacion.materia.codigo }}</p><p><strong>Periodo:</strong> {{ asignacion.periodo }}</p><p><strong>Fecha:</strong> {% now "d/m/Y" %}</p></div></div>
+<div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>#</th><th>Identificación</th><th>Estudiante</th><th>Parcial 1</th><th>Parcial 2</th><th>Parcial 3</th><th>Definitiva</th><th>% Asistencia</th><th>Estado</th><th>Certificación</th></tr></thead><tbody>
+{% for d in notas_data %}<tr><td>{{ forloop.counter }}</td><td>{{ d.identificacion }}</td><td>{{ d.nombre }}</td>
+<td class="text-center">{% if d.parcial1 is not None %}{{ d.parcial1 }}{% else %}-{% endif %}</td>
+<td class="text-center">{% if d.parcial2 is not None %}{{ d.parcial2 }}{% else %}-{% endif %}</td>
+<td class="text-center">{% if d.parcial3 is not None %}{{ d.parcial3 }}{% else %}-{% endif %}</td>
+<td class="text-center fw-bold">{% if d.definitiva is not None %}{{ d.definitiva }}{% else %}-{% endif %}</td>
+<td class="text-center">{{ d.asistencia_pct }}%{% if d.aplica_nivelacion %} <i class="fas fa-star text-warning" title="Nivelación aplicada"></i>{% endif %}</td>
+<td>{% if d.estado == 'Aprobado' %}<span class="badge-aprobado">Aprobado</span>{% elif d.estado == 'Reprobado' %}<span class="badge-reprobado">Reprobado</span>{% else %}-{% endif %}</td>
+<td class="text-center">{% if d.certificacion == 'Certificable y Homologable' %}<span class="badge bg-success"><i class="fas fa-award me-1"></i>Certificable y Homologable</span>{% elif d.certificacion == 'Certificable' %}<span class="badge bg-info"><i class="fas fa-certificate me-1"></i>Certificable</span>{% else %}<span class="text-muted">-</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+
+<!-- Leyenda de nivelación -->
+<div class="alert alert-light border mt-3">
+    <h6 class="fw-bold mb-2"><i class="fas fa-info-circle text-primary me-1"></i> Criterios de Certificación</h6>
+    <div class="row">
+        <div class="col-md-6">
+            <p class="mb-1"><span class="badge bg-success"><i class="fas fa-award me-1"></i>Certificable y Homologable</span>: 100% asistencia + Promedio ≥ 4.0</p>
+            <p class="mb-0"><span class="badge bg-info"><i class="fas fa-certificate me-1"></i>Certificable</span>: ≥ 80% asistencia + Promedio ≥ 4.0</p>
+        </div>
+        <div class="col-md-6">
+            <p class="mb-1"><i class="fas fa-star text-warning me-1"></i> Nivelación aplicada: El encuentro de nivelación compensó falta(s)</p>
+            <p class="mb-0"><small class="text-muted">7 encuentros regulares + 1 encuentro de nivelación</small></p>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4"><div class="col-md-6"><div class="card bg-light"><div class="card-body"><h6 class="fw-bold">Resumen del Curso</h6><p class="mb-1">Cantidad de estudiantes: <strong>{{ stats.total_estudiantes }}</strong></p><p class="mb-1">Aprobados: <strong class="text-success">{{ stats.aprobados }}</strong></p><p class="mb-1">Reprobados: <strong class="text-danger">{{ stats.reprobados }}</strong></p><p class="mb-1">Promedio del curso: <strong>{{ stats.promedio_curso }}</strong></p><p class="mb-0">Promedio de asistencia: <strong>{{ stats.promedio_asistencia }}%</strong></p></div></div></div></div>
+<div class="text-center mt-4 text-muted"><small>Universidad Simón Bolívar — Ing. Wilson Castellanos — © 2026 Todos los derechos reservados.</small></div>
+</div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    async function saveFileWithPicker(btn, url, suggestedName, mimeType, description, extension) {
+        const originalHtml = btn.innerHTML;
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Generando...';
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Error al generar el archivo');
+            const blob = await response.blob();
+            if ('showSaveFilePicker' in window) {
+                const fileHandle = await window.showSaveFilePicker({
+                    suggestedName: suggestedName,
+                    types: [{ description: description, accept: { [mimeType]: [extension] } }]
+                });
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+                btn.innerHTML = '<i class="fas fa-check me-1"></i> ¡Guardado!';
+                btn.classList.add('btn-outline-success');
+                setTimeout(() => { btn.innerHTML = originalHtml; btn.classList.remove('btn-outline-success'); btn.disabled = false; }, 2000);
+            } else {
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl; a.download = suggestedName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+                btn.innerHTML = originalHtml; btn.disabled = false;
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') { btn.innerHTML = originalHtml; btn.disabled = false; return; }
+            console.error('Error al guardar:', err);
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Error';
+            setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2000);
+        }
+    }
+    document.getElementById('btnDownloadPdf').addEventListener('click', function() {
+        saveFileWithPicker(this, '{% url "reportes:descargar_pdf" asignacion.pk %}', 'reporte_{{ asignacion.materia.codigo }}_{{ asignacion.periodo }}.pdf', 'application/pdf', 'Documento PDF', '.pdf');
+    });
+    document.getElementById('btnDownloadExcel').addEventListener('click', function() {
+        saveFileWithPicker(this, '{% url "reportes:descargar_excel" asignacion.pk %}', 'reporte_{{ asignacion.materia.codigo }}_{{ asignacion.periodo }}.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Documento Excel', '.xlsx');
+    });
+});
+</script>
+{% endblock %}
