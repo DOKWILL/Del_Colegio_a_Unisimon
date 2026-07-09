@@ -7,3 +7,4 @@ Pillow>=10.0
 gunicorn>=22.0
 whitenoise>=6.5
 django-widget-tweaks>=1.5
+dj-database-url
