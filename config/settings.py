@@ -8,6 +8,7 @@ archivos estáticos y seguridad del sistema.
 import os
 from pathlib import Path
 from decouple import config, Csv
+import dj_database_url
 
 # ==============================================================================
 # PATHS
@@ -87,9 +88,19 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # DATABASE
 # ==============================================================================
 # SQLite para desarrollo, PostgreSQL para producción
-DATABASE_URL = config('DATABASE_URL', default='sqlite:///db.sqlite3')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-if DATABASE_URL.startswith('postgres'):
+DATABASES = {
+    'default': dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
+
+
+
+"""if DATABASE_URL.startswith('postgres'):
     # PostgreSQL configuration
     import re
     match = re.match(
@@ -107,8 +118,8 @@ if DATABASE_URL.startswith('postgres'):
                 'PORT': match.group('port'),
             }
         }
-    else:
-        raise ValueError(f"Invalid DATABASE_URL format: {DATABASE_URL}")
+    #else:
+        #raise ValueError(f"Invalid DATABASE_URL format: {DATABASE_URL}")
 else:
     # SQLite configuration (development)
     DATABASES = {
@@ -116,7 +127,7 @@ else:
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
-    }
+    }"""
 
 # ==============================================================================
 # AUTHENTICATION
