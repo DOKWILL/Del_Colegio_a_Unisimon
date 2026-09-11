@@ -13,6 +13,24 @@ from apps.estudiantes.models import Estudiante, Colegio
 from apps.materias.models import Programa  # Ajusta esta ruta si tu app 'materias' está en otra ubicación
 
 
+# Mapea las variantes que puedan venir en el Excel a los códigos exactos
+# que acepta el modelo (max_length=4): 'T.I.', 'C.C.', 'PPT'
+MAPEO_TIPO_ID = {
+    'T.I.': 'T.I.', 'TI': 'T.I.', 'T.I': 'T.I.',
+    'TARJETA DE IDENTIDAD': 'T.I.',
+    'C.C.': 'C.C.', 'CC': 'C.C.', 'C.C': 'C.C.',
+    'CEDULA': 'C.C.', 'CÉDULA': 'C.C.', 'CEDULA DE CIUDADANIA': 'C.C.',
+    'PPT': 'PPT',
+    'PERMISO DE PROTECCION TEMPORAL': 'PPT', 'PERMISO DE PROTECCIÓN TEMPORAL': 'PPT',
+}
+
+
+def normalizar_tipo_id(valor):
+    """Convierte cualquier variante del tipo de documento al código válido."""
+    clave = str(valor).strip().upper()
+    return MAPEO_TIPO_ID.get(clave)  # None si no coincide con ninguna variante conocida
+
+
 def cargar_estudiantes_github(url_raw):
     try:
         print("📥 Descargando archivo desde GitHub...")
@@ -49,11 +67,18 @@ def cargar_estudiantes_github(url_raw):
             stats['errores'] += 1
             continue
 
+        # Normalizar y validar tipo de identificación
+        tipo_id = normalizar_tipo_id(row['Tipo_Doc'])
+        if not tipo_id:
+            print(f"⚠️ Tipo de documento '{row['Tipo_Doc']}' no reconocido. Omitiendo documento {doc}.")
+            stats['errores'] += 1
+            continue
+
         estudiante, creado = Estudiante.objects.get_or_create(
             identificacion=doc,
             defaults={
                 'nombre_apellido': str(row['Nombre']).strip(),
-                'tipo_identificacion': str(row['Tipo_Doc']).strip().upper(),
+                'tipo_identificacion': tipo_id,
                 'colegio': colegio,
                 'programa': programa,
                 'activo': True
