@@ -1,10 +1,10 @@
 Django>=5.1,<6.0
 python-decouple>=3.8
+dj-database-url
 psycopg2-binary>=2.9
-reportlab>=4.1
-openpyxl>=3.1
-Pillow>=10.0
 gunicorn>=22.0
 whitenoise>=6.5
 django-widget-tweaks>=1.5
-dj-database-url
+reportlab>=4.1
+openpyxl>=3.1
+Pillow>=10.0
