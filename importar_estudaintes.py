@@ -1,5 +1,6 @@
 import os
 import io
+import unicodedata
 import django
 import requests
 import pandas as pd
@@ -13,21 +14,27 @@ from apps.estudiantes.models import Estudiante, Colegio
 from apps.materias.models import Programa  # Ajusta esta ruta si tu app 'materias' está en otra ubicación
 
 
-# Mapea las variantes que puedan venir en el Excel a los códigos exactos
-# que acepta el modelo (max_length=4): 'T.I.', 'C.C.', 'PPT'
+def quitar_tildes(texto):
+    """Elimina tildes/acentos para comparar sin importar cómo estén escritos."""
+    nfkd = unicodedata.normalize('NFKD', texto)
+    return ''.join(c for c in nfkd if not unicodedata.combining(c))
+
+
+# Mapea las variantes (ya sin tildes) que puedan venir en el Excel a los
+# códigos exactos que acepta el modelo (max_length=4): 'T.I.', 'C.C.', 'PPT'
 MAPEO_TIPO_ID = {
     'T.I.': 'T.I.', 'TI': 'T.I.', 'T.I': 'T.I.',
     'TARJETA DE IDENTIDAD': 'T.I.',
     'C.C.': 'C.C.', 'CC': 'C.C.', 'C.C': 'C.C.',
-    'CEDULA': 'C.C.', 'CÉDULA': 'C.C.', 'CEDULA DE CIUDADANIA': 'C.C.',
+    'CEDULA': 'C.C.', 'CEDULA DE CIUDADANIA': 'C.C.', 'CEDULA CIUDADANIA': 'C.C.',
     'PPT': 'PPT',
-    'PERMISO DE PROTECCION TEMPORAL': 'PPT', 'PERMISO DE PROTECCIÓN TEMPORAL': 'PPT',
+    'PERMISO DE PROTECCION TEMPORAL': 'PPT',
 }
 
 
 def normalizar_tipo_id(valor):
     """Convierte cualquier variante del tipo de documento al código válido."""
-    clave = str(valor).strip().upper()
+    clave = quitar_tildes(str(valor).strip().upper())
     return MAPEO_TIPO_ID.get(clave)  # None si no coincide con ninguna variante conocida
 
 
