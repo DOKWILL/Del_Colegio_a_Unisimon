@@ -27,6 +27,7 @@ class Estudiante(models.Model):
     TIPO_ID_CHOICES = [
         ('T.I.', 'Tarjeta de Identidad'),
         ('C.C.', 'Cédula de Ciudadanía'),
+        ('PPT', 'Permiso de Protección Temporal'),
     ]
 
     nombre_apellido = models.CharField(max_length=200, verbose_name='Nombre y Apellido')
