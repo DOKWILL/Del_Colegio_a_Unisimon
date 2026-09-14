@@ -1,30 +1,71 @@
-{% extends "base.html" %}{% block title %}Reportes{% endblock %}{% block content %}
-<div class="page-header"><h2><i class="fas fa-file-pdf"></i> Generación de Reportes</h2></div>
-<p class="text-muted mb-3">Seleccione una materia para generar su reporte académico.</p>
-<div class="row g-3">{% for asig in asignaciones %}
-<div class="col-md-6 col-lg-4"><div class="card"><div class="card-body">
-<h6 class="fw-bold">{{ asig.materia.nombre }}</h6>
-<p class="text-muted small mb-2">{{ asig.programa.nombre }} — {{ asig.periodo }}<br>Prof. {{ asig.profesor.nombres }}</p>
-<div class="d-flex gap-2 flex-wrap">
-<a href="{% url 'reportes:vista_previa' asig.pk %}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye me-1"></i> Vista Previa</a>
-<button type="button" class="btn btn-sm btn-danger btn-save-file"
-    data-url="{% url 'reportes:descargar_pdf' asig.pk %}"
-    data-filename="reporte_{{ asig.materia.codigo }}_{{ asig.periodo }}.pdf"
-    data-mime="application/pdf"
-    data-desc="Documento PDF"
-    data-ext=".pdf">
-    <i class="fas fa-file-pdf me-1"></i> PDF
-</button>
-<button type="button" class="btn btn-sm btn-success btn-save-file"
-    data-url="{% url 'reportes:descargar_excel' asig.pk %}"
-    data-filename="reporte_{{ asig.materia.codigo }}_{{ asig.periodo }}.xlsx"
-    data-mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    data-desc="Documento Excel"
-    data-ext=".xlsx">
-    <i class="fas fa-file-excel me-1"></i> Excel
-</button>
-</div></div></div></div>
-{% empty %}<div class="col-12"><div class="card"><div class="card-body text-center text-muted py-4">No tiene asignaciones activas.</div></div></div>{% endfor %}</div>
+{% extends "base.html" %}
+{% block title %}Reportes{% endblock %}
+
+{% block content %}
+<!-- INICIO DEL ENCABEZADO ACTUALIZADO -->
+<div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+    <div>
+        <h2 class="mb-1"><i class="fas fa-file-pdf"></i> Generación de Reportes</h2>
+        <p class="text-muted mb-0">Seleccione una materia para generar su reporte académico.</p>
+    </div>
+    
+    {% if request.user.es_admin %}
+    <div>
+        <!-- Botón adaptado para usar tu script de guardado nativo -->
+        <button type="button" class="btn btn-success btn-lg shadow-sm btn-save-file"
+            data-url="{% url 'reportes:descargar_consolidado_asistencias' %}"
+            data-filename="Consolidado_General_Asistencias.xlsx"
+            data-mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            data-desc="Documento Excel"
+            data-ext=".xlsx">
+            <i class="fas fa-file-excel me-2"></i> Consolidado Global
+        </button>
+    </div>
+    {% endif %}
+</div>
+<!-- FIN DEL ENCABEZADO ACTUALIZADO -->
+
+<div class="row g-3">
+    {% for asig in asignaciones %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="fw-bold">{{ asig.materia.nombre }}</h6>
+                <p class="text-muted small mb-2">{{ asig.programa.nombre }} — {{ asig.periodo }}<br>Prof. {{ asig.profesor.nombres }}</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'reportes:vista_previa' asig.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i> Vista Previa
+                    </a>
+                    <button type="button" class="btn btn-sm btn-danger btn-save-file"
+                        data-url="{% url 'reportes:descargar_pdf' asig.pk %}"
+                        data-filename="reporte_{{ asig.materia.codigo }}_{{ asig.periodo }}.pdf"
+                        data-mime="application/pdf"
+                        data-desc="Documento PDF"
+                        data-ext=".pdf">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success btn-save-file"
+                        data-url="{% url 'reportes:descargar_excel' asig.pk %}"
+                        data-filename="reporte_{{ asig.materia.codigo }}_{{ asig.periodo }}.xlsx"
+                        data-mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        data-desc="Documento Excel"
+                        data-ext=".xlsx">
+                        <i class="fas fa-file-excel me-1"></i> Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center text-muted py-4">
+                No tiene asignaciones activas.
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -38,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(url);
             if (!response.ok) throw new Error('Error al generar el archivo');
             const blob = await response.blob();
+            
             if ('showSaveFilePicker' in window) {
                 const fileHandle = await window.showSaveFilePicker({
                     suggestedName: suggestedName,
@@ -46,22 +88,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 const writable = await fileHandle.createWritable();
                 await writable.write(blob);
                 await writable.close();
+                
                 btn.innerHTML = '<i class="fas fa-check me-1"></i> ¡Guardado!';
                 btn.classList.add('btn-outline-success');
-                setTimeout(() => { btn.innerHTML = originalHtml; btn.classList.remove('btn-outline-success'); btn.disabled = false; }, 2000);
+                setTimeout(() => { 
+                    btn.innerHTML = originalHtml; 
+                    btn.classList.remove('btn-outline-success'); 
+                    btn.disabled = false; 
+                }, 2000);
             } else {
                 const downloadUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = downloadUrl; a.download = suggestedName;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                a.href = downloadUrl; 
+                a.download = suggestedName;
+                document.body.appendChild(a); 
+                a.click(); 
+                document.body.removeChild(a);
                 URL.revokeObjectURL(downloadUrl);
-                btn.innerHTML = originalHtml; btn.disabled = false;
+                btn.innerHTML = originalHtml; 
+                btn.disabled = false;
             }
         } catch (err) {
-            if (err.name === 'AbortError') { btn.innerHTML = originalHtml; btn.disabled = false; return; }
+            if (err.name === 'AbortError') { 
+                btn.innerHTML = originalHtml; 
+                btn.disabled = false; 
+                return; 
+            }
             console.error('Error al guardar:', err);
             btn.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i> Error';
-            setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2000);
+            setTimeout(() => { 
+                btn.innerHTML = originalHtml; 
+                btn.disabled = false; 
+            }, 2000);
         }
     }
 
