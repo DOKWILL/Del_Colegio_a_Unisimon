@@ -265,16 +265,38 @@ def ver_asistencia(request, asignacion_id):
 
 @login_required_custom
 def detalle_encuentro(request, asignacion_id, encuentro):
-    """Ver detalle de asistencia de un encuentro específico."""
+    """Ver detalle de asistencia de un encuentro específico y permitir su edición."""
     asignacion = get_object_or_404(Asignacion, pk=asignacion_id)
 
     if request.user.es_profesor and request.user.profesor != asignacion.profesor:
         messages.error(request, 'No tiene permisos.')
         return redirect('asistencia:seleccionar_materia')
 
+    # Traemos los registros actuales
     registros = Asistencia.objects.filter(
         asignacion=asignacion, encuentro=encuentro
     ).select_related('estudiante').order_by('estudiante__nombre_apellido')
+
+    # Lógica para procesar la edición cuando se envía el formulario
+    if request.method == 'POST':
+        registros_actualizados = 0
+        
+        for registro in registros:
+            # Capturamos los nuevos valores usando el ID único de cada registro
+            nuevo_estado = request.POST.get(f'estado_{registro.id}')
+            nueva_fecha = request.POST.get(f'fecha_{registro.id}')
+            nuevas_obs = request.POST.get(f'obs_{registro.id}', '')
+
+            # Actualizamos solo si hay datos válidos
+            if nuevo_estado and nueva_fecha:
+                registro.estado = nuevo_estado
+                registro.fecha = nueva_fecha
+                registro.observaciones = nuevas_obs
+                registro.save()
+                registros_actualizados += 1
+
+        messages.success(request, f'Se actualizaron {registros_actualizados} registros del encuentro {encuentro}.')
+        return redirect('asistencia:ver_asistencia', asignacion_id=asignacion.id)
 
     es_nivelacion = encuentro == ENCUENTRO_NIVELACION
 
