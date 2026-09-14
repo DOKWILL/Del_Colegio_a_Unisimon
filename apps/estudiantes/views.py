@@ -82,16 +82,24 @@ def estudiante_editar(request, pk):
 
 
 @admin_required
-def estudiante_eliminar(request, pk):
-    """Eliminar un estudiante."""
-    estudiante = get_object_or_404(Estudiante, pk=pk)
+def eliminar_estudiante(request, estudiante_id):
+    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
+    
     if request.method == 'POST':
-        estudiante.delete()
-        messages.success(request, 'Estudiante eliminado exitosamente.')
-        return redirect('estudiantes:lista')
-    return render(request, 'estudiantes/estudiante_confirmar_eliminar.html', {
-        'estudiante': estudiante
-    })
+        try:
+            estudiante.delete()
+            messages.success(request, 'Estudiante eliminado correctamente.')
+        except ProtectedError:
+            # ¡Aquí atrapamos el error 500!
+            messages.error(
+                request, 
+                f'No se puede eliminar a {estudiante.nombre_apellido} porque tiene historial académico (asistencias, notas o matrículas) vinculado. Te recomendamos "Desactivarlo" en su lugar.'
+            )
+        
+        return redirect('estudiantes:lista_estudiantes') # Ajusta esto a tu URL real
+
+    # Si es un GET, me imagino que retornas la plantilla de confirmación
+    return render(request, 'estudiantes/confirmar_eliminar.html', {'estudiante': estudiante})
 
 
 # === Colegios ===
