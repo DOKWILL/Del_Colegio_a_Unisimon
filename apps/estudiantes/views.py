@@ -1,7 +1,7 @@
 """Vistas del módulo de Estudiantes (Módulo 1)."""
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, ProtectedError # 👈 ¡Importación de ProtectedError agregada aquí!
 
 from .models import Estudiante, Colegio
 from .forms import EstudianteForm, ColegioForm
@@ -90,15 +90,15 @@ def eliminar_estudiante(request, estudiante_id):
             estudiante.delete()
             messages.success(request, 'Estudiante eliminado correctamente.')
         except ProtectedError:
-            # ¡Aquí atrapamos el error 500!
+            # Ahora Django sabe qué es ProtectedError y lanzará este mensaje
             messages.error(
                 request, 
-                f'No se puede eliminar a {estudiante.nombre_apellido} porque tiene historial académico (asistencias, notas o matrículas) vinculado. Te recomendamos "Desactivarlo" en su lugar.'
+                f'No se puede eliminar a {estudiante.nombre_apellido} porque tiene historial académico (asistencias, notas o matrículas) vinculado. Te recomendamos "Desactivarlo" editando su perfil.'
             )
         
-        return redirect('estudiantes:lista_estudiantes') # Ajusta esto a tu URL real
+        # 👈 Ajustado a 'estudiantes:lista' para que coincida con tus otras vistas
+        return redirect('estudiantes:lista') 
 
-    # Si es un GET, me imagino que retornas la plantilla de confirmación
     return render(request, 'estudiantes/confirmar_eliminar.html', {'estudiante': estudiante})
 
 
