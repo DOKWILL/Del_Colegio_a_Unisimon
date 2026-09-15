@@ -82,21 +82,19 @@ def estudiante_editar(request, pk):
 
 
 @admin_required
-def eliminar_estudiante(request, estudiante_id):
-    estudiante = get_object_or_404(Estudiante, id=estudiante_id)
+def estudiante_eliminar(request, pk):
+    estudiante = get_object_or_404(Estudiante, pk=pk)
     
     if request.method == 'POST':
         try:
             estudiante.delete()
             messages.success(request, 'Estudiante eliminado correctamente.')
         except ProtectedError:
-            # Ahora Django sabe qué es ProtectedError y lanzará este mensaje
             messages.error(
                 request, 
                 f'No se puede eliminar a {estudiante.nombre_apellido} porque tiene historial académico (asistencias, notas o matrículas) vinculado. Te recomendamos "Desactivarlo" editando su perfil.'
             )
         
-        # 👈 Ajustado a 'estudiantes:lista' para que coincida con tus otras vistas
         return redirect('estudiantes:lista') 
 
     return render(request, 'estudiantes/confirmar_eliminar.html', {'estudiante': estudiante})
