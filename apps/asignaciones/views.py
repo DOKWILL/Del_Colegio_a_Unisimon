@@ -2,7 +2,8 @@
 from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, ProtectedError # 👈 Importación agregada
+
 from .models import Asignacion, Matricula
 from .forms import AsignacionForm, MatriculaForm
 from apps.profesores.models import Profesor
@@ -122,13 +123,22 @@ def asignacion_editar(request, pk):
     })
 
 
+# 🚀 VISTA ACTUALIZADA CON PROTECTED_ERROR
 @admin_required
 def asignacion_eliminar(request, pk):
     asignacion = get_object_or_404(Asignacion, pk=pk)
     if request.method == 'POST':
-        asignacion.delete()
-        messages.success(request, 'Asignación eliminada exitosamente.')
+        try:
+            asignacion.delete()
+            messages.success(request, 'Asignación eliminada exitosamente.')
+        except ProtectedError:
+            # Atrapa el error y muestra la alerta amigable
+            messages.error(
+                request, 
+                f'No se puede eliminar la asignación de "{asignacion.materia.nombre}" porque ya tiene estudiantes matriculados, asistencias o notas registradas. Te recomendamos editarla y desmarcar la casilla "Activa".'
+            )
         return redirect('asignaciones:lista')
+        
     return render(request, 'asignaciones/asignacion_confirmar_eliminar.html', {
         'asignacion': asignacion
     })
@@ -305,4 +315,3 @@ def horario_docente_detalle(request, profesor_id):
         'dias_activos': dias_activos,
         'cruces_horario': cruces_horario,
     })
-
