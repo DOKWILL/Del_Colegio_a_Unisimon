@@ -11,6 +11,10 @@ Reglas de nivelación:
 - Si faltó a 1 regular y asiste a nivelación: 100%
 - Si faltó a 2 regulares y asiste a nivelación: 80%
 """
+import io
+import pandas as pd
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Count, Q
@@ -328,3 +332,65 @@ def detalle_encuentro(request, asignacion_id, encuentro):
         'registros': registros,
         'es_nivelacion': es_nivelacion,
     })
+
+@login_required_custom
+def descargar_encuentro_excel(request, asignacion_id, encuentro):
+    """Genera un Excel de la asistencia de un encuentro específico."""
+    asignacion = get_object_or_404(Asignacion, pk=asignacion_id)
+    registros = Asistencia.objects.filter(
+        asignacion=asignacion, encuentro=encuentro
+    ).select_related('estudiante').order_by('estudiante__nombre_apellido')
+
+    datos = []
+    for i, r in enumerate(registros, 1):
+        datos.append({
+            '#': i,
+            'Estudiante': r.estudiante.nombre_apellido,
+            'Identificación': r.estudiante.identificacion,
+            'Estado': r.get_estado_display(),
+            'Fecha': r.fecha.strftime('%d/%m/%Y') if r.fecha else '',
+            'Observaciones': r.observaciones
+        })
+
+    df = pd.DataFrame(datos)
+    buffer = io.BytesIO()
+    
+    # Usamos ExcelWriter para poder darle un poco de formato a las columnas
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name=f'Encuentro {encuentro}')
+        worksheet = writer.sheets[f'Encuentro {encuentro}']
+        worksheet.column_dimensions['B'].width = 35
+        worksheet.column_dimensions['C'].width = 15
+        worksheet.column_dimensions['D'].width = 15
+        worksheet.column_dimensions['E'].width = 15
+        worksheet.column_dimensions['F'].width = 40
+
+    content = buffer.getvalue()
+    filename = f"Asistencia_Encuentro_{encuentro}_{asignacion.materia.codigo}.xlsx"
+    response = HttpResponse(content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+@login_required_custom
+def descargar_encuentro_pdf(request, asignacion_id, encuentro):
+    """Genera un PDF de la asistencia de un encuentro específico."""
+    asignacion = get_object_or_404(Asignacion, pk=asignacion_id)
+    registros = Asistencia.objects.filter(
+        asignacion=asignacion, encuentro=encuentro
+    ).select_related('estudiante').order_by('estudiante__nombre_apellido')
+
+    html_string = render_to_string('asistencia/pdf_encuentro.html', {
+        'asignacion': asignacion,
+        'encuentro': encuentro,
+        'registros': registros,
+        'institucion': 'Universidad Simón Bolívar',
+        'coordinador': 'Ing. Wilson Castellanos',
+    })
+
+    # Si usas Weasyprint (si usas otra librería como ReportLab, ajústalo aquí)
+    pdf = weasyprint.HTML(string=html_string).write_pdf()
+    
+    filename = f"Asistencia_Encuentro_{encuentro}_{asignacion.materia.codigo}.pdf"
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
