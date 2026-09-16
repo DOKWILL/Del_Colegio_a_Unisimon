@@ -265,29 +265,51 @@ def ver_asistencia(request, asignacion_id):
 
 @login_required_custom
 def detalle_encuentro(request, asignacion_id, encuentro):
-    """Ver detalle de asistencia de un encuentro específico y permitir su edición."""
+    """Ver detalle de asistencia de un encuentro específico y permitir su edición con sincronización."""
     asignacion = get_object_or_404(Asignacion, pk=asignacion_id)
 
     if request.user.es_profesor and request.user.profesor != asignacion.profesor:
         messages.error(request, 'No tiene permisos.')
         return redirect('asistencia:seleccionar_materia')
 
-    # Traemos los registros actuales
+    # --- INICIO DE NUEVA LÓGICA DE SINCRONIZACIÓN AUTOMÁTICA ---
+    # 1. Buscamos a todos los estudiantes que están matriculados HOY en la clase
+    matriculas_actuales = Matricula.objects.filter(asignacion=asignacion, activa=True).select_related('estudiante')
+    
+    # 2. Obtenemos la fecha original en la que se tomó este encuentro (buscando a cualquier estudiante de la lista)
+    registro_base = Asistencia.objects.filter(asignacion=asignacion, encuentro=encuentro).first()
+    
+    if registro_base:
+        fecha_original = registro_base.fecha
+        # 3. Iteramos sobre los matriculados actuales. Si alguno no tiene asistencia en este encuentro, se la creamos.
+        for matricula in matriculas_actuales:
+            # get_or_create verifica si existe, y si no, crea un registro por defecto
+            Asistencia.objects.get_or_create(
+                asignacion=asignacion,
+                estudiante=matricula.estudiante,
+                encuentro=encuentro,
+                defaults={
+                    'fecha': fecha_original,
+                    'estado': 'presente', # Por defecto en presente, puedes cambiarlo a ausente si prefieres
+                    'observaciones': 'Agregado por matrícula tardía'
+                }
+            )
+    # --- FIN DE LA LÓGICA DE SINCRONIZACIÓN ---
+
+    # Ahora sí, traemos los registros completos (que ya incluirán a los nuevos estudiantes)
     registros = Asistencia.objects.filter(
         asignacion=asignacion, encuentro=encuentro
     ).select_related('estudiante').order_by('estudiante__nombre_apellido')
 
-    # Lógica para procesar la edición cuando se envía el formulario
+    # Lógica para procesar la edición al hacer clic en Guardar
     if request.method == 'POST':
         registros_actualizados = 0
         
         for registro in registros:
-            # Capturamos los nuevos valores usando el ID único de cada registro
             nuevo_estado = request.POST.get(f'estado_{registro.id}')
             nueva_fecha = request.POST.get(f'fecha_{registro.id}')
             nuevas_obs = request.POST.get(f'obs_{registro.id}', '')
 
-            # Actualizamos solo si hay datos válidos
             if nuevo_estado and nueva_fecha:
                 registro.estado = nuevo_estado
                 registro.fecha = nueva_fecha
