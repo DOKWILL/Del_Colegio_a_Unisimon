@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Asistencia Encuentro {{ encuentro }}</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #198754; padding-bottom: 15px; }
+        .header h2 { margin: 0; color: #198754; }
+        .header h3 { margin: 5px 0 15px 0; font-weight: normal; }
+        .details { margin-bottom: 20px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; font-weight: bold; }
+        .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>{{ institucion }}</h2>
+        <h3>Reporte Oficial de Asistencia - Encuentro {{ encuentro }}</h3>
+    </div>
+    
+    <div class="details">
+        <strong>Materia:</strong> {{ asignacion.materia.nombre }} ({{ asignacion.materia.codigo }})<br>
+        <strong>Profesor:</strong> {{ asignacion.profesor.nombres }}<br>
+        <strong>Programa:</strong> {{ asignacion.programa.nombre }}
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">#</th>
+                <th style="width: 35%;">Estudiante</th>
+                <th style="width: 15%;">Identificación</th>
+                <th style="width: 15%;">Estado</th>
+                <th style="width: 30%;">Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in registros %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ r.estudiante.nombre_apellido }}</td>
+                <td>{{ r.estudiante.identificacion }}</td>
+                <td>{{ r.get_estado_display }}</td>
+                <td>{{ r.observaciones|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Documento generado por el Sistema de Gestión Académica</p>
+        <p>Revisado por: {{ coordinador }}</p>
+    </div>
+</body>
+</html>
