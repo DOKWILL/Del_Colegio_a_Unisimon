@@ -13,6 +13,7 @@ Reglas de nivelación:
 """
 import io
 import pandas as pd
+from .pdf_generator import generar_pdf_encuentro
 from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.shortcuts import render, redirect, get_object_or_404
@@ -373,24 +374,18 @@ def descargar_encuentro_excel(request, asignacion_id, encuentro):
 
 @login_required_custom
 def descargar_encuentro_pdf(request, asignacion_id, encuentro):
-    """Genera un PDF de la asistencia de un encuentro específico."""
+    """Genera un PDF de la asistencia de un encuentro usando ReportLab."""
     asignacion = get_object_or_404(Asignacion, pk=asignacion_id)
     registros = Asistencia.objects.filter(
         asignacion=asignacion, encuentro=encuentro
     ).select_related('estudiante').order_by('estudiante__nombre_apellido')
 
-    html_string = render_to_string('asistencia/pdf_encuentro.html', {
-        'asignacion': asignacion,
-        'encuentro': encuentro,
-        'registros': registros,
-        'institucion': 'Universidad Simón Bolívar',
-        'coordinador': 'Ing. Wilson Castellanos',
-    })
-
-    # Si usas Weasyprint (si usas otra librería como ReportLab, ajústalo aquí)
-    pdf = weasyprint.HTML(string=html_string).write_pdf()
+    buffer = io.BytesIO()
+    generar_pdf_encuentro(asignacion, encuentro, registros, buffer)
     
+    content = buffer.getvalue()
     filename = f"Asistencia_Encuentro_{encuentro}_{asignacion.materia.codigo}.pdf"
-    response = HttpResponse(pdf, content_type='application/pdf')
+    response = HttpResponse(content, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
     return response
