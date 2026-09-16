@@ -9,4 +9,6 @@ urlpatterns = [
     path('<int:asignacion_id>/registrar/', views.registrar_asistencia, name='registrar'),
     path('<int:asignacion_id>/ver/', views.ver_asistencia, name='ver_asistencia'),
     path('<int:asignacion_id>/encuentro/<int:encuentro>/', views.detalle_encuentro, name='detalle_encuentro'),
+    path('<int:asignacion_id>/encuentro/<int:encuentro>/excel/', views.descargar_encuentro_excel, name='descargar_encuentro_excel'),
+    path('<int:asignacion_id>/encuentro/<int:encuentro>/pdf/', views.descargar_encuentro_pdf, name='descargar_encuentro_pdf'),
 ]
