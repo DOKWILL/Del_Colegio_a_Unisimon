@@ -6,6 +6,7 @@ con notas, asistencia y estadísticas del curso.
 """
 import io
 import pandas as pd
+from django.db.models import F
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
@@ -187,18 +188,21 @@ def descargar_excel(request, asignacion_id):
 def descargar_consolidado_asistencias(request):
     """Descargar consolidado general de todas las asistencias en Excel."""
     
-    # Opcional: Si quieres que solo los administradores puedan descargar esto
     if not request.user.es_admin:
          return HttpResponse('No autorizado', status=403)
 
-    # 1. Consultar todos los registros optimizando las relaciones
-    asistencias = Asistencia.objects.select_related(
+    # 1. Consultar registros filtrando para omitir estudiantes inactivos o desmatriculados
+    asistencias = Asistencia.objects.filter(
+        estudiante__activo=True,                               # El estudiante debe estar activo en el sistema
+        estudiante__matricula__asignacion=F('asignacion'),     # Cruzamos con la matrícula de ESTA materia
+        estudiante__matricula__activa=True                     # La matrícula debe estar activa
+    ).select_related(
         'estudiante', 
         'estudiante__colegio',
         'asignacion__materia'
     ).order_by('-fecha', 'estudiante__nombre_apellido')
 
-    # 2. Estructurar los datos con los campos solicitados
+    # 2. Estructurar los datos
     datos = []
     for r in asistencias:
         datos.append({
@@ -207,20 +211,16 @@ def descargar_consolidado_asistencias(request):
             'Fecha de Asistencia': r.fecha.strftime('%d/%m/%Y') if r.fecha else '',
             'Colegio': r.estudiante.colegio.nombre if r.estudiante.colegio else 'N/A',
             'Programa': r.estudiante.programa,
-            # Añadimos Materia y Estado para dar un contexto completo al reporte
             'Materia': r.asignacion.materia.nombre,
             'Estado': r.get_estado_display() 
         })
 
-    # 3. Convertir a DataFrame de Pandas
+    # 3. Convertir a DataFrame y guardar
     df = pd.DataFrame(datos)
-
-    # 4. Guardar el Excel en memoria
     buffer = io.BytesIO()
     df.to_excel(buffer, index=False, engine='openpyxl')
     content = buffer.getvalue()
 
-    # 5. Configurar y retornar la respuesta HTTP
     filename = "Consolidado_General_Asistencias.xlsx"
     response = HttpResponse(
         content,
