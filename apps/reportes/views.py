@@ -191,14 +191,15 @@ def descargar_consolidado_asistencias(request):
     if not request.user.es_admin:
          return HttpResponse('No autorizado', status=403)
 
-    # 1. Consultar registros filtrando para omitir estudiantes inactivos o desmatriculados
+    # 1. Cambiamos 'matricula' por 'matricula_set' (el estándar de Django)
     asistencias = Asistencia.objects.filter(
-        estudiante__activo=True,                               # El estudiante debe estar activo en el sistema
-        estudiante__matricula__asignacion=F('asignacion'),     # Cruzamos con la matrícula de ESTA materia
-        estudiante__matricula__activa=True                     # La matrícula debe estar activa
+        estudiante__activo=True,
+        estudiante__matricula_set__asignacion=F('asignacion'),     
+        estudiante__matricula_set__activa=True                     
     ).select_related(
         'estudiante', 
         'estudiante__colegio',
+        'estudiante__programa', # <-- Añadimos esto para optimizar
         'asignacion__materia'
     ).order_by('-fecha', 'estudiante__nombre_apellido')
 
@@ -210,7 +211,7 @@ def descargar_consolidado_asistencias(request):
             'Identificación': r.estudiante.identificacion,
             'Fecha de Asistencia': r.fecha.strftime('%d/%m/%Y') if r.fecha else '',
             'Colegio': r.estudiante.colegio.nombre if r.estudiante.colegio else 'N/A',
-            'Programa': r.estudiante.programa,
+            'Programa': r.estudiante.programa.nombre if r.estudiante.programa else 'N/A', # <-- Ajustado a .nombre
             'Materia': r.asignacion.materia.nombre,
             'Estado': r.get_estado_display() 
         })
