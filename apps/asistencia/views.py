@@ -311,6 +311,12 @@ def detalle_encuentro(request, asignacion_id, encuentro):
     ).select_related('estudiante').order_by('estudiante__nombre_apellido')
 
     if request.method == 'POST':
+        # === NUEVA LÓGICA DE PROTECCIÓN AL GUARDAR ===
+        # Si NO es administrador, denegamos la acción de guardar
+        if not request.user.es_admin:
+            messages.error(request, 'Acceso denegado: Solo los administradores pueden modificar los registros de asistencia de un encuentro pasado.')
+            return redirect('asistencia:detalle_encuentro', asignacion_id=asignacion.id, encuentro=encuentro)
+
         registros_actualizados = 0
         for registro in registros:
             nuevo_estado = request.POST.get(f'estado_{registro.id}')
