@@ -6,6 +6,8 @@ con notas, asistencia y estadísticas del curso.
 """
 import io
 import pandas as pd
+from django.db.models import Exists, OuterRef
+from apps.asignaciones.models import Matricula
 from django.db.models import F
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
@@ -191,11 +193,21 @@ def descargar_consolidado_asistencias(request):
     if not request.user.es_admin:
          return HttpResponse('No autorizado', status=403)
 
-    # 1. Filtro corregido: Usamos 'matricula' (estándar de ORM) en lugar de 'matricula_set'
+    # Subconsulta: Busca si existe una matrícula activa que coincida exactamente 
+    # con el estudiante y la asignación de la fila de Asistencia actual.
+    matricula_activa_subquery = Matricula.objects.filter(
+        estudiante=OuterRef('estudiante_id'),
+        asignacion=OuterRef('asignacion_id'),
+        activa=True
+    )
+
+    # Filtro principal usando Exists
     asistencias = Asistencia.objects.filter(
-        estudiante__activo=True,
-        estudiante__matricula__asignacion=F('asignacion'),     
-        estudiante__matricula__activa=True                     
+        estudiante__activo=True
+    ).annotate(
+        tiene_matricula=Exists(matricula_activa_subquery)
+    ).filter(
+        tiene_matricula=True # 👈 Solo mantiene a los que pasaron la validación de la subconsulta
     ).select_related(
         'estudiante', 
         'estudiante__colegio',
@@ -203,7 +215,7 @@ def descargar_consolidado_asistencias(request):
         'asignacion__materia'
     ).order_by('-fecha', 'estudiante__nombre_apellido')
 
-    # 2. Estructurar los datos asegurando extraer textos (.nombre) y no objetos
+    # Estructurar los datos
     datos = []
     for r in asistencias:
         datos.append({
@@ -216,7 +228,7 @@ def descargar_consolidado_asistencias(request):
             'Estado': r.get_estado_display() 
         })
 
-    # 3. Convertir a DataFrame y guardar
+    # Convertir a DataFrame y guardar
     df = pd.DataFrame(datos)
     buffer = io.BytesIO()
     df.to_excel(buffer, index=False, engine='openpyxl')
