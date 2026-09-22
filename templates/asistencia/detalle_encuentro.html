@@ -21,7 +21,6 @@
     </div>
 </div>
 
-
 <div class="card">
     <div class="card-body">
         <form method="post">
@@ -43,24 +42,23 @@
                             <td>{{ forloop.counter }}</td>
                             <td><strong>{{ registro.estudiante.nombre_apellido }}</strong></td>
                             
-                            <!-- Menú desplegable para cambiar el estado -->
+                            <!-- Menú desplegable para cambiar el estado (Deshabilitado para profesores) -->
                             <td>
-                                <select name="estado_{{ registro.id }}" class="form-select form-select-sm">
+                                <select name="estado_{{ registro.id }}" class="form-select form-select-sm" {% if not request.user.es_admin %}disabled{% endif %}>
                                     <option value="presente" {% if registro.estado == 'presente' %}selected{% endif %}>Presente</option>
                                     <option value="ausente" {% if registro.estado == 'ausente' %}selected{% endif %}>Ausente</option>
                                     <option value="excusa" {% if registro.estado == 'excusa' %}selected{% endif %}>Excusa</option>
-                                    
                                 </select>
                             </td>
                             
-                            <!-- Input para cambiar la fecha individualmente o masivamente -->
+                            <!-- Input para cambiar la fecha (Deshabilitado para profesores) -->
                             <td>
-                                <input type="date" name="fecha_{{ registro.id }}" class="form-control form-control-sm" value="{{ registro.fecha|date:'Y-m-d' }}" required>
+                                <input type="date" name="fecha_{{ registro.id }}" class="form-control form-control-sm" value="{{ registro.fecha|date:'Y-m-d' }}" required {% if not request.user.es_admin %}disabled{% endif %}>
                             </td>
                             
-                            <!-- Input para editar las observaciones -->
+                            <!-- Input para editar las observaciones (Deshabilitado para profesores) -->
                             <td>
-                                <input type="text" name="obs_{{ registro.id }}" class="form-control form-control-sm" value="{{ registro.observaciones }}">
+                                <input type="text" name="obs_{{ registro.id }}" class="form-control form-control-sm" value="{{ registro.observaciones }}" {% if not request.user.es_admin %}disabled{% endif %}>
                             </td>
                         </tr>
                         {% empty %}
@@ -73,10 +71,16 @@
             </div>
             
             {% if registros %}
-            <div class="d-flex justify-content-end mt-3">
-                <button type="submit" class="btn btn-success btn-lg">
-                    <i class="fas fa-save me-1"></i> Guardar Cambios
-                </button>
+            <div class="d-flex justify-content-end mt-4 mb-2">
+                {% if request.user.es_admin %}
+                    <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                    </button>
+                {% else %}
+                    <div class="alert alert-info shadow-sm w-100 text-center mb-0" role="alert">
+                        <i class="fas fa-info-circle me-2"></i> <strong>Modo de solo lectura:</strong> Las modificaciones de asistencia de encuentros pasados están restringidas a la coordinación administrativa.
+                    </div>
+                {% endif %}
             </div>
             {% endif %}
         </form>
