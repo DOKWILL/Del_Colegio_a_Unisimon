@@ -191,19 +191,19 @@ def descargar_consolidado_asistencias(request):
     if not request.user.es_admin:
          return HttpResponse('No autorizado', status=403)
 
-    # 1. Cambiamos 'matricula' por 'matricula_set' (el estándar de Django)
+    # 1. Filtro corregido: Usamos 'matricula' (estándar de ORM) en lugar de 'matricula_set'
     asistencias = Asistencia.objects.filter(
         estudiante__activo=True,
-        estudiante__matricula_set__asignacion=F('asignacion'),     
-        estudiante__matricula_set__activa=True                     
+        estudiante__matricula__asignacion=F('asignacion'),     
+        estudiante__matricula__activa=True                     
     ).select_related(
         'estudiante', 
         'estudiante__colegio',
-        'estudiante__programa', # <-- Añadimos esto para optimizar
+        'estudiante__programa',
         'asignacion__materia'
     ).order_by('-fecha', 'estudiante__nombre_apellido')
 
-    # 2. Estructurar los datos
+    # 2. Estructurar los datos asegurando extraer textos (.nombre) y no objetos
     datos = []
     for r in asistencias:
         datos.append({
@@ -211,7 +211,7 @@ def descargar_consolidado_asistencias(request):
             'Identificación': r.estudiante.identificacion,
             'Fecha de Asistencia': r.fecha.strftime('%d/%m/%Y') if r.fecha else '',
             'Colegio': r.estudiante.colegio.nombre if r.estudiante.colegio else 'N/A',
-            'Programa': r.estudiante.programa.nombre if r.estudiante.programa else 'N/A', # <-- Ajustado a .nombre
+            'Programa': r.estudiante.programa.nombre if r.estudiante.programa else 'N/A',
             'Materia': r.asignacion.materia.nombre,
             'Estado': r.get_estado_display() 
         })
