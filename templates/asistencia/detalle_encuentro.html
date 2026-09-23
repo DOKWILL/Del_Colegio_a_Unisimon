@@ -9,6 +9,12 @@
     </div>
     
     <div class="d-flex gap-2">
+        {% if request.user.es_admin %}
+        <a href="{% url 'asistencia:eliminar_encuentro' asignacion.id encuentro %}" class="btn btn-outline-danger shadow-sm" title="Eliminar este encuentro">
+            <i class="fas fa-trash-alt"></i>
+        </a>
+        {% endif %}
+        
         <a href="{% url 'asistencia:descargar_encuentro_pdf' asignacion.id encuentro %}" class="btn btn-danger shadow-sm">
             <i class="fas fa-file-pdf me-1"></i> PDF
         </a>
