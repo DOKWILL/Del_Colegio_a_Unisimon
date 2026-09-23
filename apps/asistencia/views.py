@@ -397,3 +397,25 @@ def descargar_encuentro_pdf(request, asignacion_id, encuentro):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     return response
+
+@login_required_custom
+def eliminar_encuentro(request, asignacion_id, encuentro):
+    """Permite a un administrador eliminar por completo un encuentro y sus registros."""
+    if not request.user.es_admin:
+        messages.error(request, 'Acceso denegado: Solo los administradores pueden eliminar encuentros.')
+        return redirect('asistencia:ver_asistencia', asignacion_id=asignacion_id)
+
+    asignacion = get_object_or_404(Asignacion, pk=asignacion_id)
+    registros = Asistencia.objects.filter(asignacion=asignacion, encuentro=encuentro)
+
+    if request.method == 'POST':
+        cantidad = registros.count()
+        registros.delete()
+        messages.success(request, f'Se eliminó correctamente el encuentro {encuentro} con sus {cantidad} registros.')
+        return redirect('asistencia:ver_asistencia', asignacion_id=asignacion.id)
+
+    return render(request, 'asistencia/confirmar_eliminar_encuentro.html', {
+        'asignacion': asignacion,
+        'encuentro': encuentro,
+        'cantidad': registros.count(),
+    })
