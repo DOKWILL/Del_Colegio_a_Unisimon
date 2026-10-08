@@ -6,30 +6,11 @@ La definitiva y el estado se calculan automáticamente en el modelo.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef # <-- Agregado Exists, OuterRef
 
 from .models import Nota
 from apps.asignaciones.models import Asignacion, Matricula
 from apps.auth_app.decorators import login_required_custom
-
-
-@login_required_custom
-def seleccionar_materia_notas(request):
-    """Seleccionar materia para registrar notas."""
-    if request.user.es_admin:
-        asignaciones = Asignacion.objects.filter(activa=True).select_related(
-            'profesor', 'materia', 'programa'
-        )
-    elif request.user.es_profesor and request.user.profesor:
-        asignaciones = Asignacion.objects.filter(
-            profesor=request.user.profesor, activa=True
-        ).select_related('materia', 'programa')
-    else:
-        asignaciones = Asignacion.objects.none()
-
-    return render(request, 'notas/seleccionar_materia.html', {
-        'asignaciones': asignaciones
-    })
 
 
 @login_required_custom
@@ -66,7 +47,6 @@ def registrar_notas(request, asignacion_id):
                 )
                 
                 # Usamos request.POST.get sin fallback vacío. 
-                # Si retorna None, es porque el campo no existe en el HTML.
                 p1 = request.POST.get(f'parcial1_{est_id}')
                 p2 = request.POST.get(f'parcial2_{est_id}')
                 p3 = request.POST.get(f'parcial3_{est_id}')
@@ -84,14 +64,23 @@ def registrar_notas(request, asignacion_id):
                 continue
 
         messages.success(request, 'Calificaciones guardadas exitosamente.')
-        # Redirigimos a la misma página para que vea las notas actualizadas
         return redirect('notas:registrar', asignacion_id=asignacion.id)
 
-    # Filtrar notas para mostrar SOLAMENTE a los que tienen matrícula activa
-    notas = Nota.objects.filter(
+    # === SOLUCIÓN APLICADA ===
+    # Subconsulta para verificar si el estudiante tiene una matrícula activa en esta asignación
+    matricula_activa = Matricula.objects.filter(
+        estudiante=OuterRef('estudiante_id'),
         asignacion=asignacion,
-        estudiante__matricula__asignacion=asignacion,
-        estudiante__matricula__activa=True
+        activa=True
+    )
+
+    # Filtrar notas para mostrar SOLAMENTE a los que pasaron la subconsulta
+    notas = Nota.objects.filter(
+        asignacion=asignacion
+    ).annotate(
+        tiene_matricula=Exists(matricula_activa)
+    ).filter(
+        tiene_matricula=True
     ).select_related('estudiante').order_by('estudiante__nombre_apellido')
 
     return render(request, 'notas/registrar_notas.html', {
@@ -112,10 +101,19 @@ def ver_notas(request, asignacion_id):
         messages.error(request, 'No tiene permisos.')
         return redirect('notas:seleccionar_materia')
 
-    notas = Nota.objects.filter(
+    # === SOLUCIÓN APLICADA ===
+    matricula_activa = Matricula.objects.filter(
+        estudiante=OuterRef('estudiante_id'),
         asignacion=asignacion,
-        estudiante__matricula__asignacion=asignacion,
-        estudiante__matricula__activa=True
+        activa=True
+    )
+
+    notas = Nota.objects.filter(
+        asignacion=asignacion
+    ).annotate(
+        tiene_matricula=Exists(matricula_activa)
+    ).filter(
+        tiene_matricula=True
     ).select_related('estudiante').order_by('estudiante__nombre_apellido')
 
     # Estadísticas
