@@ -6,11 +6,30 @@ La definitiva y el estado se calculan automáticamente en el modelo.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.db.models import Q, Exists, OuterRef # <-- Agregado Exists, OuterRef
+from django.db.models import Q, Exists, OuterRef
 
 from .models import Nota
 from apps.asignaciones.models import Asignacion, Matricula
 from apps.auth_app.decorators import login_required_custom
+
+
+@login_required_custom
+def seleccionar_materia_notas(request):
+    """Seleccionar materia para registrar notas."""
+    if request.user.es_admin:
+        asignaciones = Asignacion.objects.filter(activa=True).select_related(
+            'profesor', 'materia', 'programa'
+        )
+    elif request.user.es_profesor and request.user.profesor:
+        asignaciones = Asignacion.objects.filter(
+            profesor=request.user.profesor, activa=True
+        ).select_related('materia', 'programa')
+    else:
+        asignaciones = Asignacion.objects.none()
+
+    return render(request, 'notas/seleccionar_materia.html', {
+        'asignaciones': asignaciones
+    })
 
 
 @login_required_custom
@@ -46,12 +65,10 @@ def registrar_notas(request, asignacion_id):
                     estudiante=matricula.estudiante
                 )
                 
-                # Usamos request.POST.get sin fallback vacío. 
                 p1 = request.POST.get(f'parcial1_{est_id}')
                 p2 = request.POST.get(f'parcial2_{est_id}')
                 p3 = request.POST.get(f'parcial3_{est_id}')
 
-                # Solo se actualiza si el dato viene en el POST
                 if p1 is not None:
                     nota.parcial1 = float(p1) if p1.strip() else None
                 if p2 is not None:
@@ -59,22 +76,20 @@ def registrar_notas(request, asignacion_id):
                 if p3 is not None:
                     nota.parcial3 = float(p3) if p3.strip() else None
                     
-                nota.save()  # calcular_definitiva() es llamado en save()
+                nota.save()  
             except (ValueError, Nota.DoesNotExist):
                 continue
 
         messages.success(request, 'Calificaciones guardadas exitosamente.')
         return redirect('notas:registrar', asignacion_id=asignacion.id)
 
-    # === SOLUCIÓN APLICADA ===
-    # Subconsulta para verificar si el estudiante tiene una matrícula activa en esta asignación
+    # Subconsulta para verificar matrícula activa (evita el FieldError)
     matricula_activa = Matricula.objects.filter(
         estudiante=OuterRef('estudiante_id'),
         asignacion=asignacion,
         activa=True
     )
 
-    # Filtrar notas para mostrar SOLAMENTE a los que pasaron la subconsulta
     notas = Nota.objects.filter(
         asignacion=asignacion
     ).annotate(
@@ -101,7 +116,7 @@ def ver_notas(request, asignacion_id):
         messages.error(request, 'No tiene permisos.')
         return redirect('notas:seleccionar_materia')
 
-    # === SOLUCIÓN APLICADA ===
+    # Subconsulta para verificar matrícula activa (evita el FieldError)
     matricula_activa = Matricula.objects.filter(
         estudiante=OuterRef('estudiante_id'),
         asignacion=asignacion,
