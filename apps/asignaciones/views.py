@@ -160,9 +160,11 @@ def matricular_estudiantes(request, pk):
             estudiantes = form.cleaned_data['estudiantes']
             count = 0
             for est in estudiantes:
-                Matricula.objects.get_or_create(
-                    estudiante=est, asignacion=asignacion,
-                    defaults={'activa': True}
+                # 🚀 CAMBIO CLAVE: Cambiamos a update_or_create
+                Matricula.objects.update_or_create(
+                    estudiante=est, 
+                    asignacion=asignacion,
+                    defaults={'activa': True}  # Enciende la matrícula de nuevo si estaba inactiva
                 )
                 count += 1
             messages.success(request, f'{count} estudiante(s) matriculado(s) exitosamente.')
