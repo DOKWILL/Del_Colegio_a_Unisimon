@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:asignacion_id>/pdf/', views.descargar_pdf, name='descargar_pdf'),
     path('<int:asignacion_id>/excel/', views.descargar_excel, name='descargar_excel'),
     path('consolidado-asistencias/', views.descargar_consolidado_asistencias, name='descargar_consolidado_asistencias'),
+    path('consolidado-notas/', views.descargar_consolidado_notas, name='consolidado_notas'),
 ]
