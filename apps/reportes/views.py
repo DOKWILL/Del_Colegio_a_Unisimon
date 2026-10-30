@@ -12,7 +12,6 @@ from django.db.models import F
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Q
-
 from apps.asignaciones.models import Asignacion, Matricula
 from apps.notas.models import Nota
 from apps.asistencia.models import Asistencia
@@ -20,6 +19,7 @@ from apps.auth_app.decorators import login_required_custom
 from .pdf_generator import generar_reporte_pdf
 from .excel_generator import generar_reporte_excel
 from apps.asistencia.views import calcular_asistencia_con_nivelacion, calcular_certificacion
+from django.http import HttpResponse
 
 
 def _get_reporte_data(asignacion):
@@ -241,5 +241,80 @@ def descargar_consolidado_asistencias(request):
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     response['Content-Length'] = len(content)
+    
+    return response
+
+
+@login_required_custom
+def descargar_consolidado_notas(request):
+    """Descargar consolidado general de todas las notas en Excel."""
+    
+    if not request.user.es_admin:
+         return HttpResponse('No autorizado', status=403)
+
+    # 1. Subconsulta: Validamos que el estudiante siga matriculado activamente en el curso
+    matricula_activa = Matricula.objects.filter(
+        estudiante=OuterRef('estudiante_id'),
+        asignacion=OuterRef('asignacion_id'),
+        activa=True
+    )
+
+    # 2. Consultar las notas y traer las tablas relacionadas (Programa, Materia, Profesor)
+    notas_globales = Nota.objects.filter(
+        estudiante__activo=True
+    ).annotate(
+        tiene_matricula=Exists(matricula_activa)
+    ).filter(
+        tiene_matricula=True
+    ).select_related(
+        'estudiante', 
+        'estudiante__programa',
+        'asignacion__materia',
+        'asignacion__profesor'
+    ).order_by('asignacion__materia__nombre', 'estudiante__nombre_apellido')
+
+    # 3. Estructurar los datos agregando el Programa y el Curso
+    datos = []
+    for n in notas_globales:
+        datos.append({
+            'Identificación': n.estudiante.identificacion,
+            'Estudiante': n.estudiante.nombre_apellido,
+            'Programa': n.estudiante.programa.nombre if n.estudiante.programa else 'N/A',
+            'Curso / Materia': n.asignacion.materia.nombre,
+            'Profesor': n.asignacion.profesor.nombres,
+            'Parcial 1 (30%)': float(n.parcial1) if n.parcial1 is not None else 0.0,
+            'Parcial 2 (30%)': float(n.parcial2) if n.parcial2 is not None else 0.0,
+            'Parcial 3 (40%)': float(n.parcial3) if n.parcial3 is not None else 0.0,
+            'Definitiva': float(n.definitiva) if n.definitiva is not None else 0.0,
+            'Estado': n.estado if n.estado else 'Sin Calificar'
+        })
+
+    # 4. Crear DataFrame y dar formato a las columnas en Excel
+    df = pd.DataFrame(datos)
+    buffer = io.BytesIO()
+    
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Consolidado Notas')
+        worksheet = writer.sheets['Consolidado Notas']
+        
+        # Ajustar anchos para una presentación profesional
+        worksheet.column_dimensions['A'].width = 15  # ID
+        worksheet.column_dimensions['B'].width = 40  # Estudiante
+        worksheet.column_dimensions['C'].width = 35  # Programa
+        worksheet.column_dimensions['D'].width = 35  # Curso
+        worksheet.column_dimensions['E'].width = 30  # Profesor
+        worksheet.column_dimensions['F'].width = 15  # Parcial 1
+        worksheet.column_dimensions['G'].width = 15  # Parcial 2
+        worksheet.column_dimensions['H'].width = 15  # Parcial 3
+        worksheet.column_dimensions['I'].width = 15  # Definitiva
+        worksheet.column_dimensions['J'].width = 15  # Estado
+
+    content = buffer.getvalue()
+    filename = "Consolidado_Global_Notas.xlsx"
+    response = HttpResponse(
+        content,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     return response
