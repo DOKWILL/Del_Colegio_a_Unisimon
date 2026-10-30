@@ -10,15 +10,25 @@
     </div>
     
     {% if request.user.es_admin %}
-    <div>
-        <!-- Botón adaptado para usar tu script de guardado nativo -->
-        <button type="button" class="btn btn-success btn-lg shadow-sm btn-save-file"
+    <div class="d-flex gap-2">
+        <!-- Botón 1: Consolidado de Asistencias -->
+        <button type="button" class="btn btn-primary btn-lg shadow-sm btn-save-file"
             data-url="{% url 'reportes:descargar_consolidado_asistencias' %}"
             data-filename="Consolidado_General_Asistencias.xlsx"
             data-mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             data-desc="Documento Excel"
             data-ext=".xlsx">
-            <i class="fas fa-file-excel me-2"></i> Consolidado Global
+            <i class="fas fa-clipboard-list me-2"></i> Global de Asistencias
+        </button>
+
+        <!-- Botón 2: Consolidado de Notas (NUEVO) -->
+        <button type="button" class="btn btn-success btn-lg shadow-sm btn-save-file"
+            data-url="{% url 'reportes:consolidado_notas' %}"
+            data-filename="Consolidado_Global_Notas.xlsx"
+            data-mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            data-desc="Documento Excel"
+            data-ext=".xlsx">
+            <i class="fas fa-file-excel me-2"></i> Global de Notas
         </button>
     </div>
     {% endif %}
