@@ -6,12 +6,14 @@ con notas, asistencia y estadísticas del curso.
 """
 import io
 import pandas as pd
-from django.db.models import Exists, OuterRef
-from apps.asignaciones.models import Matricula
-from django.db.models import F
+from django.utils import timezone
+from django.db.models import Exists, OuterRef, F, Q
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
-from django.db.models import Q
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
 from apps.asignaciones.models import Asignacion, Matricula
 from apps.notas.models import Nota
 from apps.asistencia.models import Asistencia
@@ -19,7 +21,6 @@ from apps.auth_app.decorators import login_required_custom
 from .pdf_generator import generar_reporte_pdf
 from .excel_generator import generar_reporte_excel
 from apps.asistencia.views import calcular_asistencia_con_nivelacion, calcular_certificacion
-from django.http import HttpResponse
 
 
 def _get_reporte_data(asignacion):
@@ -186,6 +187,7 @@ def descargar_excel(request, asignacion_id):
     response['Content-Length'] = len(content)
     return response
 
+
 @login_required_custom
 def descargar_consolidado_asistencias(request):
     """Descargar consolidado general de todas las asistencias en Excel."""
@@ -247,19 +249,17 @@ def descargar_consolidado_asistencias(request):
 
 @login_required_custom
 def descargar_consolidado_notas(request):
-    """Descargar consolidado general de todas las notas en Excel."""
-    
+    """Descargar consolidado general de notas con el formato oficial e institucional."""
     if not request.user.es_admin:
          return HttpResponse('No autorizado', status=403)
 
-    # 1. Subconsulta: Validamos que el estudiante siga matriculado activamente en el curso
+    # 1. Subconsulta para asegurar que solo aparezcan estudiantes con matrícula activa
     matricula_activa = Matricula.objects.filter(
         estudiante=OuterRef('estudiante_id'),
         asignacion=OuterRef('asignacion_id'),
         activa=True
     )
 
-    # 2. Consultar las notas y traer las tablas relacionadas (Programa, Materia, Profesor)
     notas_globales = Nota.objects.filter(
         estudiante__activo=True
     ).annotate(
@@ -273,48 +273,115 @@ def descargar_consolidado_notas(request):
         'asignacion__profesor'
     ).order_by('asignacion__materia__nombre', 'estudiante__nombre_apellido')
 
-    # 3. Estructurar los datos agregando el Programa y el Curso
-    datos = []
-    for n in notas_globales:
-        datos.append({
-            'Identificación': n.estudiante.identificacion,
-            'Estudiante': n.estudiante.nombre_apellido,
-            'Programa': n.estudiante.programa.nombre if n.estudiante.programa else 'N/A',
-            'Curso / Materia': n.asignacion.materia.nombre,
-            'Profesor': n.asignacion.profesor.nombres,
-            'Parcial 1 (30%)': float(n.parcial1) if n.parcial1 is not None else 0.0,
-            'Parcial 2 (30%)': float(n.parcial2) if n.parcial2 is not None else 0.0,
-            'Parcial 3 (40%)': float(n.parcial3) if n.parcial3 is not None else 0.0,
-            'Definitiva': float(n.definitiva) if n.definitiva is not None else 0.0,
-            'Estado': n.estado if n.estado else 'Sin Calificar'
-        })
+    # 2. Construcción NATIVA del documento de Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Consolidado Notas Global"
 
-    # 4. Crear DataFrame y dar formato a las columnas en Excel
-    df = pd.DataFrame(datos)
-    buffer = io.BytesIO()
+    # Definir la paleta de colores y estilos (Igual al reporte individual)
+    green_fill = PatternFill(start_color="0009843B", end_color="0009843B", fill_type="solid")
+    white_font = Font(color="FFFFFF", bold=True)
+    bold_font = Font(bold=True)
+    center_aligned = Alignment(horizontal="center", vertical="center")
+    left_aligned = Alignment(horizontal="left", vertical="center")
+    border = Border(
+        left=Side(style='thin', color="DDDDDD"), 
+        right=Side(style='thin', color="DDDDDD"), 
+        top=Side(style='thin', color="DDDDDD"), 
+        bottom=Side(style='thin', color="DDDDDD")
+    )
+
+    # 3. Encabezados Institucionales Superiores
+    ws.merge_cells('A1:L1')
+    ws['A1'] = "UNIVERSIDAD SIMÓN BOLÍVAR"
+    ws['A1'].font = Font(bold=True, size=12)
+
+    ws.merge_cells('A2:L2')
+    ws['A2'] = "DEL COLEGIO A UNISIMÓN — Consolidado Global de Calificaciones, Asistencia y Certificación"
+    ws['A2'].font = Font(bold=True, size=11)
+
+    ws['A4'] = "Fecha de Generación:"
+    ws['A4'].font = bold_font
+    ws['B4'] = timezone.localdate().strftime('%d/%m/%Y')
+
+    # 4. Títulos de la Tabla (Agregando Programa y Curso)
+    encabezados = [
+        '#', 'Identificación', 'Estudiante', 'Programa', 'Materia / Curso',
+        'Parcial 1 (30%)', 'Parcial 2 (30%)', 'Parcial 3 (40%)',
+        'Definitiva', '% Asistencia', 'Estado', 'Certificación'
+    ]
     
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Consolidado Notas')
-        worksheet = writer.sheets['Consolidado Notas']
-        
-        # Ajustar anchos para una presentación profesional
-        worksheet.column_dimensions['A'].width = 15  # ID
-        worksheet.column_dimensions['B'].width = 40  # Estudiante
-        worksheet.column_dimensions['C'].width = 35  # Programa
-        worksheet.column_dimensions['D'].width = 35  # Curso
-        worksheet.column_dimensions['E'].width = 30  # Profesor
-        worksheet.column_dimensions['F'].width = 15  # Parcial 1
-        worksheet.column_dimensions['G'].width = 15  # Parcial 2
-        worksheet.column_dimensions['H'].width = 15  # Parcial 3
-        worksheet.column_dimensions['I'].width = 15  # Definitiva
-        worksheet.column_dimensions['J'].width = 15  # Estado
+    # Imprimir barra verde de encabezados en la fila 6
+    row_num = 6
+    for col_num, titulo in enumerate(encabezados, 1):
+        cell = ws.cell(row=row_num, column=col_num)
+        cell.value = titulo
+        cell.fill = green_fill
+        cell.font = white_font
+        cell.alignment = center_aligned
+        cell.border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
 
+    # 5. Iterar e inyectar Datos
+    for idx, n in enumerate(notas_globales, 1):
+        row_num += 1
+        
+        # Inyectar la lógica del módulo de asistencia para calcular porcentajes exactos
+        datos_asistencia = calcular_asistencia_con_nivelacion(n.asignacion, n.estudiante)
+        porcentaje_asist = datos_asistencia['porcentaje_final']
+        certificacion = calcular_certificacion(porcentaje_asist, n.definitiva)
+
+        def format_nota(val):
+            return float(val) if val is not None else '-'
+
+        datos_fila = [
+            idx,
+            n.estudiante.identificacion,
+            n.estudiante.nombre_apellido,
+            n.estudiante.programa.nombre if n.estudiante.programa else 'N/A',
+            n.asignacion.materia.nombre,
+            format_nota(n.parcial1),
+            format_nota(n.parcial2),
+            format_nota(n.parcial3),
+            format_nota(n.definitiva),
+            f"{porcentaje_asist}%",
+            n.estado if n.estado else '-',
+            certificacion if certificacion else '-'
+        ]
+        
+        for col_num, valor in enumerate(datos_fila, 1):
+            cell = ws.cell(row=row_num, column=col_num)
+            cell.value = valor
+            cell.border = border
+            
+            # Formatear celdas numéricas y de estados para alineación
+            if col_num in [1, 6, 7, 8, 9, 10, 11, 12]:
+                cell.alignment = center_aligned
+            else:
+                cell.alignment = left_aligned
+                
+            # Aplicar formato de un decimal "0.0" estrictamente a las notas
+            if col_num in [6, 7, 8, 9] and valor != '-':
+                cell.number_format = '0.0'
+
+    # 6. Ajustar visualmente los anchos de columna
+    anchos = {
+        'A': 5, 'B': 15, 'C': 40, 'D': 35, 'E': 40, 
+        'F': 16, 'G': 16, 'H': 16, 'I': 14, 'J': 15, 'K': 16, 'L': 30
+    }
+    for col_letra, ancho in anchos.items():
+        ws.column_dimensions[col_letra].width = ancho
+
+    # Congelar el panel superior para que el encabezado baje con el scroll
+    ws.freeze_panes = 'A7'
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
     content = buffer.getvalue()
     filename = "Consolidado_Global_Notas.xlsx"
+    
     response = HttpResponse(
         content,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
     return response
